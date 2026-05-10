@@ -1,0 +1,116 @@
+<Window x:Class="SoundCloudClient.CsvImportWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        Title="Импорт из CSV" Height="450" Width="520"
+        WindowStyle="None"
+        Background="#0D0D0D"
+        ResizeMode="CanResize"
+        WindowStartupLocation="CenterOwner"
+        Icon="pack://application:,,,/Resources/app_icon.png">
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome GlassFrameThickness="0" CornerRadius="12" ResizeBorderThickness="4"
+                            CaptionHeight="0" NonClientFrameEdges="None"/>
+    </shell:WindowChrome.WindowChrome>
+
+    <Border ClipToBounds="True" CornerRadius="12">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="40"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Titlebar -->
+            <Grid Grid.Row="0" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown"
+                  Background="#08FFFFFF">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left"
+                            VerticalAlignment="Center" Margin="15,0">
+                    <Image Source="pack://application:,,,/Resources/app_icon.png"
+                           Width="18" Height="18" Margin="0,0,6,0" VerticalAlignment="Center"
+                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <TextBlock Text="Импорт из CSV" Foreground="#CCFFFFFF" FontWeight="SemiBold"
+                               VerticalAlignment="Center" FontSize="12"/>
+                </StackPanel>
+                <Button Content="✕" HorizontalAlignment="Right" VerticalAlignment="Center"
+                        Width="36" Height="36" Margin="0,0,6,0"
+                        Background="Transparent" BorderThickness="0"
+                        Foreground="#FFAA88" FontSize="13"
+                        Click="Close_Click" Cursor="Hand">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="6">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#25FFFFFF"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </Grid>
+
+            <!-- Контент -->
+            <Grid Grid.Row="1" Margin="20,12,20,20">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Заголовок секции -->
+                <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                    <TextBlock Text="ИМПОРТ ТРЕКОВ" Foreground="#44FFFFFF" FontSize="10"
+                               FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <TextBlock Text="Формат CSV: Название,Исполнитель" Foreground="#99FFFFFF" FontSize="12"
+                               Margin="0,0,0,12"/>
+                    <Button Content="Выбрать файл" Click="SelectFile_Click"
+                            Background="#20FFFFFF" Foreground="White" BorderThickness="0"
+                            Padding="12,8" FontSize="12" HorizontalAlignment="Left" Cursor="Hand">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="8" Padding="12,8">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#30FFFFFF"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </StackPanel>
+
+                <!-- Лог -->
+                <Border Grid.Row="1" Background="#12FFFFFF" CornerRadius="10" ClipToBounds="True">
+                    <TextBox x:Name="LogBox" IsReadOnly="True" Background="Transparent"
+                             Foreground="#CCFFFFFF" BorderThickness="0" Padding="12"
+                             FontSize="12" FontFamily="Consolas"
+                             TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                             AcceptsReturn="True"/>
+                </Border>
+
+                <!-- Кнопка закрытия -->
+                <Button Grid.Row="2" Content="Закрыть" Background="#20FFFFFF" Foreground="White"
+                        BorderThickness="0" Padding="15,8" FontSize="12"
+                        Click="Close_Click" HorizontalAlignment="Right"
+                        Margin="0,12,0,0" Cursor="Hand">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="8" Padding="15,8">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#30FFFFFF"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

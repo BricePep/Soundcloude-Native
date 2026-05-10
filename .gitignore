@@ -1,0 +1,8 @@
+bin/
+obj/
+.vs/
+ReleaseOutput/
+nul
+*.user
+*.suo
+*.cache

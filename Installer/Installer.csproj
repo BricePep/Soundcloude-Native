@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>SCNativeSetup</AssemblyName>
+    <RootNamespace>SCNativeInstaller</RootNamespace>
+    <ApplicationIcon>Resources\app_icon.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\app_icon.png" />
+  </ItemGroup>
+
+  <!-- Встроенный payload: app.zip (собирается через build-release.bat) -->
+  <ItemGroup>
+    <EmbeddedResource Include="Payload\app.zip" Condition="Exists('Payload\app.zip')" />
+  </ItemGroup>
+
+</Project>

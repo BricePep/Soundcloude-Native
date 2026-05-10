@@ -1,0 +1,158 @@
+<Application x:Class="SCNativeInstaller.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <!-- Глобальные цвета -->
+            <SolidColorBrush x:Key="AccentBrush" Color="#CC7B3A"/>
+            <SolidColorBrush x:Key="AccentHoverBrush" Color="#E08F4E"/>
+            <SolidColorBrush x:Key="BackgroundBrush" Color="#0D0D0D"/>
+            <SolidColorBrush x:Key="SurfaceBrush" Color="#1A1A1A"/>
+            <SolidColorBrush x:Key="SurfaceLightBrush" Color="#252525"/>
+            <SolidColorBrush x:Key="TextBrush" Color="#E0E0E0"/>
+            <SolidColorBrush x:Key="TextDimBrush" Color="#80FFFFFF"/>
+            <SolidColorBrush x:Key="BorderBrush" Color="#333333"/>
+
+            <!-- Стиль кнопок -->
+            <Style x:Key="AccentButton" TargetType="Button">
+                <Setter Property="Background" Value="#CC7B3A"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="FontSize" Value="14"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Padding" Value="32,10"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                    CornerRadius="8" Padding="{TemplateBinding Padding}"
+                                    SnapsToDevicePixels="True">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#E08F4E"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="Bd" Property="Background" Value="#555555"/>
+                                    <Setter Property="Foreground" Value="#999999"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="GhostButton" TargetType="Button">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="#999999"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="FontSize" Value="14"/>
+                <Setter Property="Padding" Value="24,10"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                    CornerRadius="8" Padding="{TemplateBinding Padding}"
+                                    SnapsToDevicePixels="True">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#1A1A1A"/>
+                                    <Setter Property="Foreground" Value="#CCCCCC"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Стиль TextBox -->
+            <Style x:Key="PathTextBox" TargetType="TextBox">
+                <Setter Property="Background" Value="#1A1A1A"/>
+                <Setter Property="Foreground" Value="#E0E0E0"/>
+                <Setter Property="BorderBrush" Value="#333333"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="FontSize" Value="13"/>
+                <Setter Property="Padding" Value="10,8"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TextBox">
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="6" SnapsToDevicePixels="True">
+                                <ScrollViewer x:Name="PART_ContentHost"
+                                              Margin="{TemplateBinding Padding}"
+                                              VerticalAlignment="Center"
+                                              SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsFocused" Value="True">
+                                    <Setter TargetName="Bd" Property="BorderBrush" Value="#CC7B3A"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Прогресс-бар -->
+            <Style x:Key="InstallerProgressBar" TargetType="ProgressBar">
+                <Setter Property="Height" Value="6"/>
+                <Setter Property="Foreground" Value="#CC7B3A"/>
+                <Setter Property="Background" Value="#252525"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ProgressBar">
+                            <Grid>
+                                <Border x:Name="PART_Track" Background="{TemplateBinding Background}"
+                                        CornerRadius="3"/>
+                                <Border x:Name="PART_Indicator" Background="{TemplateBinding Foreground}"
+                                        CornerRadius="3" HorizontalAlignment="Left"/>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- CheckBox -->
+            <Style x:Key="InstallerCheckBox" TargetType="CheckBox">
+                <Setter Property="Foreground" Value="#E0E0E0"/>
+                <Setter Property="FontSize" Value="13"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="CheckBox">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Border x:Name="CheckBd" Width="20" Height="20"
+                                        Background="#1A1A1A" BorderBrush="#444444"
+                                        BorderThickness="1" CornerRadius="4"
+                                        Margin="0,0,8,0">
+                                    <TextBlock x:Name="CheckMark" Text="✓"
+                                               Foreground="#CC7B3A" FontSize="13" FontWeight="Bold"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               Visibility="Collapsed"/>
+                                </Border>
+                                <ContentPresenter VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="CheckBd" Property="BorderBrush" Value="#CC7B3A"/>
+                                    <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="CheckBd" Property="BorderBrush" Value="#CC7B3A"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

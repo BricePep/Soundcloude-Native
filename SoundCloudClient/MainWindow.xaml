@@ -1,0 +1,1564 @@
+﻿<Window x:Class="SoundCloudClient.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:local="clr-namespace:SoundCloudClient"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        Title="SC Native" Height="720" Width="1180"
+        WindowStyle="None"
+        Background="Transparent"
+        ResizeMode="CanResize"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="ClearType"
+        FontFamily="Segoe UI"
+        Icon="pack://application:,,,/Resources/app_icon.png">
+    <Window.TaskbarItemInfo>
+        <TaskbarItemInfo>
+            <TaskbarItemInfo.ThumbButtonInfos>
+                <ThumbButtonInfoCollection>
+                    <ThumbButtonInfo x:Name="TaskbarPrev" Description="Предыдущий трек"
+                                     Command="{x:Static local:MainWindow.TaskbarPrevCommand}"/>
+                    <ThumbButtonInfo x:Name="TaskbarPlayPause" Description="Пауза"
+                                     Command="{x:Static local:MainWindow.TaskbarPlayPauseCommand}"/>
+                    <ThumbButtonInfo x:Name="TaskbarNext" Description="Следующий трек"
+                                     Command="{x:Static local:MainWindow.TaskbarNextCommand}"/>
+                </ThumbButtonInfoCollection>
+            </TaskbarItemInfo.ThumbButtonInfos>
+        </TaskbarItemInfo>
+    </Window.TaskbarItemInfo>
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome GlassFrameThickness="0" CornerRadius="10" ResizeBorderThickness="4"
+                            CaptionHeight="0" NonClientFrameEdges="None"/>
+    </shell:WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <materialDesign:BundledTheme BaseTheme="Dark" PrimaryColor="DeepOrange" SecondaryColor="Orange"/>
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <local:InvertBoolConverter x:Key="InvertBool"/>
+            <local:SliderProgressWidthConverter x:Key="SliderProgressWidth"/>
+
+            <!-- ═══ Акцент темы (динамически меняется при переключении темы) ═══ -->
+            <Color x:Key="AccentColor">#FFFF7A00</Color>
+            <Color x:Key="AccentLightColor">#FFFF9E2E</Color>
+            <SolidColorBrush x:Key="AccentBrush" Color="{DynamicResource AccentColor}"/>
+            <SolidColorBrush x:Key="AccentLightBrush" Color="{DynamicResource AccentLightColor}"/>
+
+            <!-- ═══ Тонкие скроллбары ═══ -->
+            <Style x:Key="ScrollThumbStyle" TargetType="Thumb">
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Thumb">
+                            <Border x:Name="Bd" CornerRadius="3" Background="#22FFFFFF" Margin="2,0"/>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#44FFFFFF"/>
+                                </Trigger>
+                                <Trigger Property="IsDragging" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#66FFFFFF"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style TargetType="ScrollBar">
+                <Setter Property="Width" Value="8"/>
+                <Setter Property="MinWidth" Value="8"/>
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ScrollBar">
+                            <Grid Background="Transparent">
+                                <Track x:Name="PART_Track" IsDirectionReversed="True" ViewportSize="{TemplateBinding ViewportSize}" Maximum="{TemplateBinding Maximum}" Minimum="{TemplateBinding Minimum}" Value="{Binding Value, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+                                    <Track.Thumb>
+                                        <Thumb Style="{StaticResource ScrollThumbStyle}"/>
+                                    </Track.Thumb>
+                                    <Track.IncreaseRepeatButton>
+                                        <RepeatButton Command="ScrollBar.PageDownCommand" Opacity="0" IsTabStop="False"/>
+                                    </Track.IncreaseRepeatButton>
+                                    <Track.DecreaseRepeatButton>
+                                        <RepeatButton Command="ScrollBar.PageUpCommand" Opacity="0" IsTabStop="False"/>
+                                    </Track.DecreaseRepeatButton>
+                                </Track>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="Orientation" Value="Horizontal">
+                                    <Setter Property="Height" Value="8"/>
+                                    <Setter Property="MinHeight" Value="8"/>
+                                    <Setter Property="Width" Value="Auto"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- ═══ NavButton — кнопка навигации с PackIcon ═══ -->
+            <Style x:Key="NavBtn" TargetType="Button">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Height" Value="40"/>
+                <Setter Property="Margin" Value="8,1"/>
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Grid>
+                                <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="6" RenderTransformOrigin="0.5,0.5">
+                                    <Border.RenderTransform><ScaleTransform x:Name="NavScale" ScaleX="1" ScaleY="1"/></Border.RenderTransform>
+                                    <ContentPresenter VerticalAlignment="Center"/>
+                                </Border>
+                                <Border x:Name="Accent" Width="3" Height="20" CornerRadius="2" Background="{DynamicResource AccentBrush}" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="-2,0,0,0" Visibility="Collapsed" RenderTransformOrigin="0.5,0.5">
+                                    <Border.RenderTransform><ScaleTransform x:Name="AccentScale" ScaleY="0"/></Border.RenderTransform>
+                                </Border>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#0AFFFFFF"/>
+                                    <Trigger.EnterActions>
+                                        <BeginStoryboard><Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="NavScale" Storyboard.TargetProperty="ScaleX" To="1.02" Duration="0:0:0.1"/>
+                                            <DoubleAnimation Storyboard.TargetName="NavScale" Storyboard.TargetProperty="ScaleY" To="1.02" Duration="0:0:0.1"/>
+                                        </Storyboard></BeginStoryboard>
+                                    </Trigger.EnterActions>
+                                    <Trigger.ExitActions>
+                                        <BeginStoryboard><Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="NavScale" Storyboard.TargetProperty="ScaleX" To="1" Duration="0:0:0.12"/>
+                                            <DoubleAnimation Storyboard.TargetName="NavScale" Storyboard.TargetProperty="ScaleY" To="1" Duration="0:0:0.12"/>
+                                        </Storyboard></BeginStoryboard>
+                                    </Trigger.ExitActions>
+                                </Trigger>
+                                <Trigger Property="Tag" Value="Active">
+                                    <Setter TargetName="Bd" Property="Background" Value="#10FFFFFF"/>
+                                    <Setter TargetName="Accent" Property="Visibility" Value="Visible"/>
+                                    <Trigger.EnterActions>
+                                        <BeginStoryboard><Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="AccentScale" Storyboard.TargetProperty="ScaleY" To="1" Duration="0:0:0.15">
+                                                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+                                        </Storyboard></BeginStoryboard>
+                                    </Trigger.EnterActions>
+                                    <Trigger.ExitActions>
+                                        <BeginStoryboard><Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="AccentScale" Storyboard.TargetProperty="ScaleY" To="0" Duration="0:0:0.1"/>
+                                        </Storyboard></BeginStoryboard>
+                                    </Trigger.ExitActions>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- ═══ Слайдер прогресса ═══ -->
+            <Style x:Key="ModernSlider" TargetType="Slider">
+                <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                <Setter Property="MinHeight" Value="22"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Slider">
+                            <Grid x:Name="SliderRoot" Height="22" VerticalAlignment="Center" SnapsToDevicePixels="True">
+                                <!-- Серая фоновая полоса (на всю ширину) -->
+                                <Border Height="3" Background="#22FFFFFF" CornerRadius="2" VerticalAlignment="Center" HorizontalAlignment="Stretch" SnapsToDevicePixels="True"/>
+                                <!-- Цветная полоса прогресса (ширина по значению, акцентный цвет темы) -->
+                                <Border Height="3" Background="{DynamicResource AccentBrush}" CornerRadius="2" VerticalAlignment="Center" HorizontalAlignment="Left" SnapsToDevicePixels="True">
+                                    <Border.Width>
+                                        <MultiBinding Converter="{StaticResource SliderProgressWidth}">
+                                            <Binding RelativeSource="{RelativeSource AncestorType=Slider}" Path="Value"/>
+                                            <Binding RelativeSource="{RelativeSource AncestorType=Slider}" Path="Maximum"/>
+                                            <Binding ElementName="SliderRoot" Path="ActualWidth"/>
+                                        </MultiBinding>
+                                    </Border.Width>
+                                </Border>
+                                <!-- Track обрабатывает только перетаскивание thumb -->
+                                <Track x:Name="PART_Track" VerticalAlignment="Center" Height="22">
+                                    <Track.DecreaseRepeatButton>
+                                        <RepeatButton Command="Slider.DecreaseLarge" Focusable="False" IsTabStop="False" OverridesDefaultStyle="True">
+                                            <RepeatButton.Template><ControlTemplate TargetType="RepeatButton"><Border Background="Transparent" Height="3" VerticalAlignment="Center"/></ControlTemplate></RepeatButton.Template>
+                                        </RepeatButton>
+                                    </Track.DecreaseRepeatButton>
+                                    <Track.IncreaseRepeatButton>
+                                        <RepeatButton Command="Slider.IncreaseLarge" Focusable="False" IsTabStop="False" OverridesDefaultStyle="True">
+                                            <RepeatButton.Template><ControlTemplate TargetType="RepeatButton"><Border Background="Transparent" Height="3" VerticalAlignment="Center"/></ControlTemplate></RepeatButton.Template>
+                                        </RepeatButton>
+                                    </Track.IncreaseRepeatButton>
+                                    <Track.Thumb>
+                                        <Thumb Width="14" Height="14" VerticalAlignment="Center">
+                                            <Thumb.Template>
+                                                <ControlTemplate TargetType="Thumb">
+                                                    <Ellipse Width="14" Height="14" Fill="White" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                        <Ellipse.Effect>
+                                                            <DropShadowEffect BlurRadius="5" ShadowDepth="0" Opacity="0.6" Color="Black"/>
+                                                        </Ellipse.Effect>
+                                                    </Ellipse>
+                                                </ControlTemplate>
+                                            </Thumb.Template>
+                                        </Thumb>
+                                    </Track.Thumb>
+                                </Track>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- ═══ Вертикальный EQ-слайдер ═══ -->
+            <Style x:Key="EqVerticalSlider" TargetType="Slider">
+                <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                <Setter Property="Orientation" Value="Vertical"/>
+                <Setter Property="Minimum" Value="-12"/>
+                <Setter Property="Maximum" Value="12"/>
+                <Setter Property="IsMoveToPointEnabled" Value="True"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Slider">
+                            <Grid Width="34" SnapsToDevicePixels="True">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <!-- Фоновый трек (тонкая вертикальная линия) -->
+                                <Border Width="3" Background="#18FFFFFF" CornerRadius="2" HorizontalAlignment="Center" VerticalAlignment="Stretch"/>
+                                <!-- Линия нуля (0 dB) -->
+                                <Border Width="11" Height="1" Background="#33FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <!-- Цветная часть трека (от нуля до thumb) -->
+                                <Border x:Name="EqFillTrack" Width="3" Background="{DynamicResource AccentBrush}" CornerRadius="2" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <!-- Высота и позиция задаются через converter или code-behind -->
+                                </Border>
+                                <!-- Track для перетаскивания -->
+                                <Track x:Name="PART_Track">
+                                    <Track.DecreaseRepeatButton>
+                                        <RepeatButton Command="Slider.DecreaseLarge" Focusable="False" IsTabStop="False" OverridesDefaultStyle="True">
+                                            <RepeatButton.Template><ControlTemplate TargetType="RepeatButton"><Border Background="Transparent"/></ControlTemplate></RepeatButton.Template>
+                                        </RepeatButton>
+                                    </Track.DecreaseRepeatButton>
+                                    <Track.IncreaseRepeatButton>
+                                        <RepeatButton Command="Slider.IncreaseLarge" Focusable="False" IsTabStop="False" OverridesDefaultStyle="True">
+                                            <RepeatButton.Template><ControlTemplate TargetType="RepeatButton"><Border Background="Transparent"/></ControlTemplate></RepeatButton.Template>
+                                        </RepeatButton>
+                                    </Track.IncreaseRepeatButton>
+                                    <Track.Thumb>
+                                        <Thumb Width="14" Height="14">
+                                            <Thumb.Template>
+                                                <ControlTemplate TargetType="Thumb">
+                                                    <Grid>
+                                                        <Ellipse x:Name="ThumbGlow" Width="22" Height="22" Fill="{DynamicResource AccentBrush}" Opacity="0.2" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        <Ellipse Width="10" Height="10" Fill="White" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                            <Ellipse.Effect>
+                                                                <DropShadowEffect BlurRadius="4" ShadowDepth="0" Opacity="0.5" Color="Black"/>
+                                                            </Ellipse.Effect>
+                                                        </Ellipse>
+                                                    </Grid>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="ThumbGlow" Property="Opacity" Value="0.4"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsDragging" Value="True">
+                                                            <Setter TargetName="ThumbGlow" Property="Opacity" Value="0.55"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Thumb.Template>
+                                        </Thumb>
+                                    </Track.Thumb>
+                                </Track>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- ═══ Иконочная кнопка плеера ═══ -->
+            <Style x:Key="PlayerIconBtn" TargetType="Button">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Width" Value="32"/>
+                <Setter Property="Height" Value="32"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="16" Width="32" Height="32" RenderTransformOrigin="0.5,0.5">
+                                <Border.RenderTransform><ScaleTransform x:Name="BtnScale" ScaleX="1" ScaleY="1"/></Border.RenderTransform>
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#10FFFFFF"/>
+                                    <Trigger.EnterActions>
+                                        <BeginStoryboard><Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="BtnScale" Storyboard.TargetProperty="ScaleX" To="1.12" Duration="0:0:0.1">
+                                                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+                                            <DoubleAnimation Storyboard.TargetName="BtnScale" Storyboard.TargetProperty="ScaleY" To="1.12" Duration="0:0:0.1">
+                                                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+                                        </Storyboard></BeginStoryboard>
+                                    </Trigger.EnterActions>
+                                    <Trigger.ExitActions>
+                                        <BeginStoryboard><Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="BtnScale" Storyboard.TargetProperty="ScaleX" To="1" Duration="0:0:0.15"/>
+                                            <DoubleAnimation Storyboard.TargetName="BtnScale" Storyboard.TargetProperty="ScaleY" To="1" Duration="0:0:0.15"/>
+                                        </Storyboard></BeginStoryboard>
+                                    </Trigger.ExitActions>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- ═══ Кнопка titlebar ═══ -->
+            <Style x:Key="TitleBtn" TargetType="Button">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Width" Value="40"/>
+                <Setter Property="Height" Value="28"/>
+                <Setter Property="Foreground" Value="#99FFFFFF"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}" RenderTransformOrigin="0.5,0.5">
+                                <Border.RenderTransform><ScaleTransform x:Name="TitleScale" ScaleX="1" ScaleY="1"/></Border.RenderTransform>
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#10FFFFFF"/>
+                                    <Trigger.EnterActions>
+                                        <BeginStoryboard><Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="TitleScale" Storyboard.TargetProperty="ScaleX" To="1.08" Duration="0:0:0.08"/>
+                                            <DoubleAnimation Storyboard.TargetName="TitleScale" Storyboard.TargetProperty="ScaleY" To="1.08" Duration="0:0:0.08"/>
+                                        </Storyboard></BeginStoryboard>
+                                    </Trigger.EnterActions>
+                                    <Trigger.ExitActions>
+                                        <BeginStoryboard><Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="TitleScale" Storyboard.TargetProperty="ScaleX" To="1" Duration="0:0:0.1"/>
+                                            <DoubleAnimation Storyboard.TargetName="TitleScale" Storyboard.TargetProperty="ScaleY" To="1" Duration="0:0:0.1"/>
+                                        </Storyboard></BeginStoryboard>
+                                    </Trigger.ExitActions>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- ═══ Toggle switch (вкл/выкл) ═══ -->
+            <Style x:Key="ToggleSwitch" TargetType="CheckBox">
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="CheckBox">
+                            <Border x:Name="SwBg" Width="40" Height="22" CornerRadius="11" Background="#2A2A2A">
+                                <Border x:Name="SwDot" Width="16" Height="16" CornerRadius="8" Background="#888888"
+                                        Margin="3,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="SwBg" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                    <Setter TargetName="SwDot" Property="Background" Value="White"/>
+                                    <Setter TargetName="SwDot" Property="HorizontalAlignment" Value="Right"/>
+                                    <Setter TargetName="SwDot" Property="Margin" Value="0,0,3,0"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border x:Name="RootBorder" ClipToBounds="True" CornerRadius="10" BorderBrush="#1AFFFFFF" BorderThickness="1" Background="Transparent">
+        <Grid>
+            <!-- ═══ Фон ═══ -->
+            <Image x:Name="BackgroundImage" Stretch="UniformToFill" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+            <Border x:Name="BackgroundDarken" Background="Black" Opacity="0"/>
+            <Border x:Name="GradientOverlay">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop x:Name="GradStop1" Color="#CC0A0A0A" Offset="0"/>
+                        <GradientStop x:Name="GradStop2" Color="#CC161623" Offset="0.5"/>
+                        <GradientStop x:Name="GradStop3" Color="#CC0A0A0A" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+            </Border>
+
+            <!-- ═══ Layout ═══ -->
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="32"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="80"/>
+                </Grid.RowDefinitions>
+
+                <!-- ═══ TITLEBAR ═══ -->
+                <Grid Grid.Row="0" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown" Background="Transparent">
+                    <DockPanel LastChildFill="False">
+                        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
+                            <Image Source="pack://application:,,,/Resources/app_icon.png" Width="14" Height="14" Margin="0,0,8,0" RenderOptions.BitmapScalingMode="HighQuality"/>
+                            <TextBlock Text="SC Native" Foreground="#88FFFFFF" FontSize="11" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                            <Button Click="MinimizeButton_Click" Style="{StaticResource TitleBtn}" ToolTip="Свернуть">
+                                <materialDesign:PackIcon Kind="WindowMinimize" Width="14" Height="14"/>
+                            </Button>
+                            <Button x:Name="MaximizeButton" Click="MaximizeButton_Click" Style="{StaticResource TitleBtn}" ToolTip="Развернуть">
+                                <Grid>
+                                    <materialDesign:PackIcon x:Name="MaximizeIcon" Kind="WindowMaximize" Width="14" Height="14"/>
+                                    <materialDesign:PackIcon x:Name="RestoreIcon" Kind="WindowRestore" Width="14" Height="14" Visibility="Collapsed"/>
+                                </Grid>
+                            </Button>
+                            <Button Click="CloseButton_Click" Style="{StaticResource TitleBtn}" ToolTip="Закрыть">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="Bd" Background="Transparent">
+                                            <materialDesign:PackIcon x:Name="CloseIco" Kind="WindowClose" Width="14" Height="14" Foreground="#99FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="#E81123"/>
+                                                <Setter TargetName="CloseIco" Property="Foreground" Value="White"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </StackPanel>
+                    </DockPanel>
+                </Grid>
+
+                <!-- ═══ MAIN AREA ═══ -->
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition x:Name="SidebarColumn" Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- ═══ SIDEBAR ═══ -->
+                    <Border x:Name="SidebarBorder" Grid.Column="0" Width="220" Background="#D8080808">
+                        <Grid x:Name="SidebarContent">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Профиль -->
+                            <Grid x:Name="ProfileGrid" Grid.Row="0" Margin="14,18,14,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Border x:Name="AvatarBorder" Grid.Column="0" Width="38" Height="38" CornerRadius="19"
+                                        ClipToBounds="True" Background="#0AFFFFFF">
+                                    <Border.OpacityMask>
+                                        <VisualBrush Stretch="Fill">
+                                            <VisualBrush.Visual>
+                                                <Border Background="White" CornerRadius="19" Width="38" Height="38"/>
+                                            </VisualBrush.Visual>
+                                        </VisualBrush>
+                                    </Border.OpacityMask>
+                                    <Grid>
+                                        <TextBlock x:Name="UserAvatarEmoji" Text="♪" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource AccentBrush}"/>
+                                        <Image x:Name="UserAvatarImage" Stretch="UniformToFill" Visibility="Collapsed"/>
+                                    </Grid>
+                                </Border>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,8,0">
+                                    <TextBlock x:Name="UserDisplayName" Text="SC Native" Foreground="White" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock x:Name="UserNameText" Text="" Foreground="#66FFFFFF" FontSize="10" Visibility="Collapsed"/>
+                                </StackPanel>
+                                <Button x:Name="ToggleSidebarButton" Grid.Column="2" Click="ToggleSidebar_Click"
+                                        Width="22" Height="22" Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                        ToolTip="Свернуть" VerticalAlignment="Center">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Bd" Background="Transparent" CornerRadius="11" Width="22" Height="22">
+                                                <materialDesign:PackIcon x:Name="ToggleIcon" Kind="ChevronLeft" Width="14" Height="14" Foreground="#88FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background" Value="#18FFFFFF"/>
+                                                    <Setter TargetName="ToggleIcon" Property="Foreground" Value="White"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </Grid>
+
+                            <!-- Навигация -->
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden">
+                                <StackPanel Margin="0,0,0,12">
+                                    <TextBlock x:Name="MenuHeader" Text="МЕНЮ" Foreground="#55FFFFFF" FontSize="9" FontWeight="SemiBold" Margin="20,8,0,6"/>
+
+                                    <Button x:Name="NavHome" Click="NavHome_Click" Style="{StaticResource NavBtn}">
+                                        <Grid Margin="14,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <materialDesign:PackIcon Grid.Column="0" Kind="HomeOutline" Width="18" Height="18" Foreground="#BBFFFFFF" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="Главная" Foreground="#DDFFFFFF" FontSize="13" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Button>
+
+                                    <Button x:Name="NavSearch" Click="NavSearch_Click" Style="{StaticResource NavBtn}">
+                                        <Grid Margin="14,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <materialDesign:PackIcon Grid.Column="0" Kind="Magnify" Width="18" Height="18" Foreground="#BBFFFFFF" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="Поиск" Foreground="#DDFFFFFF" FontSize="13" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Button>
+
+                                    <Button x:Name="NavLikes" Click="NavLikes_Click" Style="{StaticResource NavBtn}">
+                                        <Grid Margin="14,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <materialDesign:PackIcon Grid.Column="0" Kind="HeartOutline" Width="18" Height="18" Foreground="#BBFFFFFF" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="Лайки" Foreground="#DDFFFFFF" FontSize="13" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Button>
+
+                                    <Button x:Name="NavLibrary" Click="NavLibrary_Click" Style="{StaticResource NavBtn}">
+                                        <Grid Margin="14,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <materialDesign:PackIcon Grid.Column="0" Kind="LibraryMusicOutline" Width="18" Height="18" Foreground="#BBFFFFFF" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="Библиотека" Foreground="#DDFFFFFF" FontSize="13" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Button>
+
+                                    <Rectangle x:Name="Sep1" Height="1" Margin="20,12,20,4" Fill="#15FFFFFF" Visibility="Collapsed"/>
+                                    <TextBlock x:Name="AccountHeader" Text="АККАУНТ" Foreground="#55FFFFFF" FontSize="9" FontWeight="SemiBold" Margin="20,4,0,6" Visibility="Collapsed"/>
+
+                                    <Rectangle x:Name="Sep2" Height="1" Margin="20,12,20,4" Fill="#10FFFFFF"/>
+
+                                    <Button x:Name="NavSettings" Click="NavSettings_Click" Style="{StaticResource NavBtn}">
+                                        <Grid Margin="14,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="28"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <materialDesign:PackIcon Grid.Column="0" Kind="CogOutline" Width="18" Height="18" Foreground="#BBFFFFFF" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="Настройки" Foreground="#DDFFFFFF" FontSize="13" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Button>
+                                </StackPanel>
+                            </ScrollViewer>
+
+                            <!-- ═══ Bug report + Предложка (внизу сайдбара) ═══ -->
+                            <StackPanel Grid.Row="2" Margin="10,8,10,12">
+                                <Border Padding="10,10" CornerRadius="10" Background="#0AFFFFFF" BorderBrush="#18FFFFFF" BorderThickness="1" Margin="0,0,0,4">
+                                    <StackPanel>
+                                        <StackPanel x:Name="BugReportTextWrap" Orientation="Horizontal" Margin="0,0,0,8">
+                                            <materialDesign:PackIcon Kind="BugOutline" Width="14" Height="14" Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Top" Margin="0,1,6,0"/>
+                                            <TextBlock x:Name="BugReportText" Text="Нашли баг? Сообщите о нём!" Foreground="#AAFFFFFF" FontSize="11" TextWrapping="Wrap" MaxWidth="170"/>
+                                        </StackPanel>
+                                        <Button x:Name="BugReportButton" Click="BugReportButton_Click" Cursor="Hand" BorderThickness="0" Foreground="White">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="Bd" Background="{DynamicResource AccentBrush}" CornerRadius="7" Padding="8,7">
+                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                            <materialDesign:PackIcon x:Name="BugReportIcon" Kind="Send" Width="12" Height="12" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                            <TextBlock x:Name="BugReportLabel" Text="Сообщить" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="Bd" Property="Effect">
+                                                                <Setter.Value>
+                                                                    <DropShadowEffect BlurRadius="12" ShadowDepth="0" Color="{DynamicResource AccentColor}" Opacity="0.6"/>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border x:Name="SuggestSection" Padding="10,10" CornerRadius="10" Background="#0AFFFFFF" BorderBrush="#18FFFFFF" BorderThickness="1">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                            <materialDesign:PackIcon Kind="LightbulbOutline" Width="14" Height="14" Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Top" Margin="0,1,6,0"/>
+                                            <TextBlock Text="Есть идея? Предложи её!" Foreground="#AAFFFFFF" FontSize="11" TextWrapping="Wrap" MaxWidth="170"/>
+                                        </StackPanel>
+                                        <Button x:Name="SuggestButton" Click="SuggestButton_Click" Cursor="Hand" BorderThickness="0" Foreground="White">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="Bd" Background="{DynamicResource AccentBrush}" CornerRadius="7" Padding="8,7">
+                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                            <materialDesign:PackIcon Kind="RocketLaunchOutline" Width="12" Height="12" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                            <TextBlock Text="Предложить" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="Bd" Property="Effect">
+                                                                <Setter.Value>
+                                                                    <DropShadowEffect BlurRadius="12" ShadowDepth="0" Color="{DynamicResource AccentColor}" Opacity="0.6"/>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- ═══ CONTENT ═══ -->
+                    <Grid Grid.Column="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Header: приветствие + поиск -->
+                        <Grid x:Name="ContentHeader" Grid.Row="0" Margin="24,16,24,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="320"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock x:Name="GreetingText" Text="Добрый вечер" Foreground="White" FontSize="26" FontWeight="Bold"/>
+                                <TextBlock x:Name="GreetingSub" Foreground="#66FFFFFF" FontSize="11" Margin="2,2,0,0"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button x:Name="AddLocalMusicBtn" Click="AddLocalMusic_Click" Cursor="Hand" Visibility="Collapsed" VerticalAlignment="Center" Margin="0,0,8,0" BorderThickness="0" Foreground="White">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Bd" CornerRadius="10" Padding="12,7" BorderBrush="#22FFFFFF" BorderThickness="1" Background="#0EFFFFFF">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Width="22" Height="22" CornerRadius="6" Background="#1AFFFFFF" VerticalAlignment="Center" Margin="0,0,8,0">
+                                                        <materialDesign:PackIcon Kind="FileMusicOutline" Width="14" Height="14" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <TextBlock Text="Добавить музыку" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#DDFFFFFF"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background" Value="#18FFFFFF"/>
+                                                    <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                                <Button x:Name="CreatePlaylistTopBtn" Grid.Column="1" Click="CreatePlaylistButton_Click" Cursor="Hand" Visibility="Collapsed" VerticalAlignment="Center" Margin="0,0,12,0" BorderThickness="0" Foreground="White">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="Bd" CornerRadius="10" Padding="12,7" BorderBrush="#22FFFFFF" BorderThickness="1" Background="#0EFFFFFF">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Border Width="22" Height="22" CornerRadius="6" Background="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0">
+                                                    <Border.Effect>
+                                                        <DropShadowEffect BlurRadius="8" ShadowDepth="0" Color="{DynamicResource AccentColor}" Opacity="0.3"/>
+                                                    </Border.Effect>
+                                                    <materialDesign:PackIcon Kind="PlaylistPlus" Width="14" Height="14" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <TextBlock Text="Новый плейлист" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#DDFFFFFF"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="#18FFFFFF"/>
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                <Setter TargetName="Bd" Property="Effect">
+                                                    <Setter.Value>
+                                                        <DropShadowEffect BlurRadius="12" ShadowDepth="0" Color="{DynamicResource AccentColor}" Opacity="0.2"/>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                            </StackPanel>
+                            <Border Grid.Column="2" Background="#0AFFFFFF" CornerRadius="20" Height="38" VerticalAlignment="Center" BorderBrush="#15FFFFFF" BorderThickness="1">
+                                <Grid>
+                                    <materialDesign:PackIcon Kind="Magnify" Width="16" Height="16" Foreground="#66FFFFFF" Margin="14,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="SearchPlaceholder" Text="Поиск треков и артистов..." Foreground="#55FFFFFF" VerticalAlignment="Center" FontSize="12" Margin="38,0,14,0"/>
+                                    <TextBox x:Name="SearchBox" Background="Transparent" BorderThickness="0" Foreground="White" FontSize="12" VerticalAlignment="Center" Margin="38,0,14,0" TextChanged="SearchBox_TextChanged" CaretBrush="White"/>
+                                </Grid>
+                            </Border>
+                        </Grid>
+
+                        <!-- Track list -->
+                        <ScrollViewer x:Name="TracksScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" PreviewMouseWheel="ScrollViewer_PreviewMouseWheel" Margin="0,12,0,0">
+                            <ListBox x:Name="TracksList" Background="Transparent" BorderThickness="0" Padding="16,4,16,12" SelectionChanged="TracksList_SelectionChanged" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <!-- Трек -->
+                                            <Grid x:Name="TrackRow" Height="56" Margin="8,1,0,1">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="56"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <!-- Обложка -->
+                                                <Border Grid.Column="0" Width="46" Height="46" CornerRadius="8" ClipToBounds="True" HorizontalAlignment="Left" VerticalAlignment="Center" Background="#0AFFFFFF" RenderTransformOrigin="0.5,0.5">
+                                                    <Border.RenderTransform><ScaleTransform x:Name="CoverScale" ScaleX="1" ScaleY="1"/></Border.RenderTransform>
+                                                    <Border.OpacityMask>
+                                                        <VisualBrush Stretch="Fill">
+                                                            <VisualBrush.Visual>
+                                                                <Border Background="White" CornerRadius="8" Width="46" Height="46"/>
+                                                            </VisualBrush.Visual>
+                                                        </VisualBrush>
+                                                    </Border.OpacityMask>
+                                                    <Grid>
+                                                        <Image Source="{Binding Artwork}" Stretch="UniformToFill"/>
+                                                        <!-- Эквалайзер (когда играет) -->
+                                                        <Border x:Name="PlayingIndicator" Background="#C0000000" Visibility="Collapsed" CornerRadius="6">
+                                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                                <Border Width="3" Height="14" Background="{DynamicResource AccentBrush}" CornerRadius="1.5" Margin="1,0" RenderTransformOrigin="0.5,1">
+                                                                    <Border.RenderTransform><ScaleTransform ScaleY="1"/></Border.RenderTransform>
+                                                                    <Border.Triggers>
+                                                                        <EventTrigger RoutedEvent="Loaded">
+                                                                            <BeginStoryboard><Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" From="0.4" To="1" Duration="0:0:0.4"/>
+                                                                            </Storyboard></BeginStoryboard>
+                                                                        </EventTrigger>
+                                                                    </Border.Triggers>
+                                                                </Border>
+                                                                <Border Width="3" Height="14" Background="{DynamicResource AccentBrush}" CornerRadius="1.5" Margin="1,0" RenderTransformOrigin="0.5,1">
+                                                                    <Border.RenderTransform><ScaleTransform ScaleY="1"/></Border.RenderTransform>
+                                                                    <Border.Triggers>
+                                                                        <EventTrigger RoutedEvent="Loaded">
+                                                                            <BeginStoryboard><Storyboard RepeatBehavior="Forever" AutoReverse="True" BeginTime="0:0:0.15">
+                                                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" From="1" To="0.3" Duration="0:0:0.5"/>
+                                                                            </Storyboard></BeginStoryboard>
+                                                                        </EventTrigger>
+                                                                    </Border.Triggers>
+                                                                </Border>
+                                                                <Border Width="3" Height="14" Background="{DynamicResource AccentBrush}" CornerRadius="1.5" Margin="1,0" RenderTransformOrigin="0.5,1">
+                                                                    <Border.RenderTransform><ScaleTransform ScaleY="1"/></Border.RenderTransform>
+                                                                    <Border.Triggers>
+                                                                        <EventTrigger RoutedEvent="Loaded">
+                                                                            <BeginStoryboard><Storyboard RepeatBehavior="Forever" AutoReverse="True" BeginTime="0:0:0.3">
+                                                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" From="0.5" To="1" Duration="0:0:0.45"/>
+                                                                            </Storyboard></BeginStoryboard>
+                                                                        </EventTrigger>
+                                                                    </Border.Triggers>
+                                                                </Border>
+                                                            </StackPanel>
+                                                        </Border>
+                                                        <!-- Пауза (когда на паузе) -->
+                                                        <Border x:Name="PausedIndicator" Background="#C0000000" Visibility="Collapsed" CornerRadius="6">
+                                                            <materialDesign:PackIcon Kind="Pause" Width="18" Height="18" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                    </Grid>
+                                                </Border>
+                                                <!-- Название и артист -->
+                                                <Grid Grid.Column="1" VerticalAlignment="Center" Margin="12,0,8,0">
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                    </Grid.RowDefinitions>
+                                                    <Grid Grid.Row="0" VerticalAlignment="Center">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="{Binding Title}" Foreground="#FFFFFFFF" FontWeight="Medium" FontSize="13" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0,0,0">
+                                                            <Button x:Name="HeartFull" Click="Heart_Click" Cursor="Hand" ToolTip="Убрать из лайков" Width="22" Height="22" Background="Transparent" BorderThickness="0" Visibility="Collapsed">
+                                                                <Button.Template>
+                                                                    <ControlTemplate TargetType="Button">
+                                                                        <Border x:Name="Bd" Background="Transparent" Width="22" Height="22" RenderTransformOrigin="0.5,0.5">
+                                                                            <Border.RenderTransform><ScaleTransform x:Name="HeartScaleFull" ScaleX="1" ScaleY="1"/></Border.RenderTransform>
+                                                                            <materialDesign:PackIcon Kind="Heart" Width="14" Height="14" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                        </Border>
+                                                                    </ControlTemplate>
+                                                                </Button.Template>
+                                                            </Button>
+                                                            <Button x:Name="HeartEmpty" Click="Heart_Click" Cursor="Hand" ToolTip="Нравится" Width="22" Height="22" Background="Transparent" BorderThickness="0">
+                                                                <Button.Template>
+                                                                    <ControlTemplate TargetType="Button">
+                                                                        <Border x:Name="Bd" Background="Transparent" Width="22" Height="22" RenderTransformOrigin="0.5,0.5">
+                                                                            <Border.RenderTransform><ScaleTransform x:Name="HeartScaleEmpty" ScaleX="1" ScaleY="1"/></Border.RenderTransform>
+                                                                            <materialDesign:PackIcon Kind="HeartOutline" Width="14" Height="14" Foreground="#55FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                        </Border>
+                                                                    </ControlTemplate>
+                                                                </Button.Template>
+                                                            </Button>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                    <TextBlock Grid.Row="1" Text="{Binding ArtistName}" Foreground="#66FFFFFF" FontSize="11" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"/>
+                                                </Grid>
+                                                <!-- Длительность + кнопки -->
+                                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding DurationFormatted}" Foreground="#55FFFFFF" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                    <Button Click="AddToPlaylistButton_Click" Cursor="Hand" ToolTip="В плейлист" Width="28" Height="28" Background="Transparent" BorderThickness="0">
+                                                        <Button.Template>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <Border x:Name="Bd" Background="Transparent" CornerRadius="4">
+                                                                    <materialDesign:PackIcon x:Name="PlIcon" Kind="PlaylistPlus" Width="16" Height="16" Foreground="#55FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                </Border>
+                                                                <ControlTemplate.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter TargetName="Bd" Property="Background" Value="#15FFFFFF"/>
+                                                                    </Trigger>
+                                                                </ControlTemplate.Triggers>
+                                                            </ControlTemplate>
+                                                        </Button.Template>
+                                                    </Button>
+                                                    <Button x:Name="RemoveFromPlBtn" Click="RemoveFromPlaylist_Click" Cursor="Hand" ToolTip="Убрать из плейлиста" Width="28" Height="28" Background="Transparent" BorderThickness="0" Visibility="Collapsed">
+                                                        <Button.Template>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <Border x:Name="Bd" Background="Transparent" CornerRadius="4">
+                                                                    <materialDesign:PackIcon Kind="PlaylistMinus" Width="16" Height="16" Foreground="#55FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                </Border>
+                                                                <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#15FFFFFF"/></Trigger></ControlTemplate.Triggers>
+                                                            </ControlTemplate>
+                                                        </Button.Template>
+                                                    </Button>
+                                                    <Button Click="TrackMenuButton_Click" Cursor="Hand" ToolTip="Ещё" Width="28" Height="28" Background="Transparent" BorderThickness="0">
+                                                        <Button.Template>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <Border x:Name="Bd" Background="Transparent" CornerRadius="4">
+                                                                    <materialDesign:PackIcon Kind="DotsVertical" Width="16" Height="16" Foreground="#55FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                </Border>
+                                                                <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#15FFFFFF"/></Trigger></ControlTemplate.Triggers>
+                                                            </ControlTemplate>
+                                                        </Button.Template>
+                                                    </Button>
+                                                </StackPanel>
+                                            </Grid>
+                                            <!-- Заголовок секции -->
+                                            <StackPanel x:Name="SectionHeader" Orientation="Horizontal" Visibility="Collapsed" Margin="2,16,2,6">
+                                                <Border Width="3" Height="14" CornerRadius="2" Background="{DynamicResource AccentBrush}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding Title}" Foreground="#CCFFFFFF" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding IsSectionHeader}" Value="True">
+                                                <Setter TargetName="TrackRow" Property="Visibility" Value="Collapsed"/>
+                                                <Setter TargetName="SectionHeader" Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsLiked}" Value="True">
+                                                <Setter TargetName="HeartEmpty" Property="Visibility" Value="Collapsed"/>
+                                                <Setter TargetName="HeartFull" Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsCurrentlyPlaying}" Value="True">
+                                                <Setter TargetName="PlayingIndicator" Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsInPlaylist}" Value="True">
+                                                <Setter TargetName="RemoveFromPlBtn" Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding IsCurrentlyPlaying}" Value="True"/>
+                                                    <Condition Binding="{Binding IsPaused}" Value="True"/>
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter TargetName="PlayingIndicator" Property="Visibility" Value="Collapsed"/>
+                                                <Setter TargetName="PausedIndicator" Property="Visibility" Value="Visible"/>
+                                            </MultiDataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="Padding" Value="0"/>
+                                        <Setter Property="IsHitTestVisible" Value="{Binding IsSectionHeader, Converter={StaticResource InvertBool}}"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="ListBoxItem">
+                                                    <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="8" Padding="6,2" RenderTransformOrigin="0.5,0.5">
+                                                        <Border.RenderTransform><ScaleTransform x:Name="ItemScale" ScaleX="1" ScaleY="1"/></Border.RenderTransform>
+                                                        <ContentPresenter/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="Bd" Property="Background" Value="#08FFFFFF"/>
+                                                            <Trigger.EnterActions>
+                                                                <BeginStoryboard><Storyboard>
+                                                                    <DoubleAnimation Storyboard.TargetName="ItemScale" Storyboard.TargetProperty="ScaleX" To="1.005" Duration="0:0:0.08"/>
+                                                                    <DoubleAnimation Storyboard.TargetName="ItemScale" Storyboard.TargetProperty="ScaleY" To="1.008" Duration="0:0:0.08"/>
+                                                                </Storyboard></BeginStoryboard>
+                                                            </Trigger.EnterActions>
+                                                            <Trigger.ExitActions>
+                                                                <BeginStoryboard><Storyboard>
+                                                                    <DoubleAnimation Storyboard.TargetName="ItemScale" Storyboard.TargetProperty="ScaleX" To="1" Duration="0:0:0.1"/>
+                                                                    <DoubleAnimation Storyboard.TargetName="ItemScale" Storyboard.TargetProperty="ScaleY" To="1" Duration="0:0:0.1"/>
+                                                                </Storyboard></BeginStoryboard>
+                                                            </Trigger.ExitActions>
+                                                        </Trigger>
+                                                        <Trigger Property="IsSelected" Value="True"><Setter TargetName="Bd" Property="Background" Value="#12FFFFFF"/></Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                            </ListBox>
+                        </ScrollViewer>
+
+                        <!-- ═══ Lyrics Panel ═══ -->
+                        <Grid x:Name="LyricsPanel" Grid.RowSpan="2" Visibility="Collapsed" Background="#E80A0A0A">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="3*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="32,0">
+                                <Button x:Name="LyricsBackButton" HorizontalAlignment="Left" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="LyricsBack_Click" Margin="0,0,0,24">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="ChevronLeft" Width="16" Height="16" Foreground="#88FFFFFF" VerticalAlignment="Center"/>
+                                                <TextBlock x:Name="BackText" Text="Назад" Foreground="#88FFFFFF" FontSize="12" VerticalAlignment="Center" Margin="2,0,0,0"/>
+                                            </StackPanel>
+                                            <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="BackText" Property="Foreground" Value="White"/></Trigger></ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                                <Grid Width="220" Height="220">
+                                    <Border CornerRadius="14" Background="Black">
+                                        <Border.Effect>
+                                            <DropShadowEffect BlurRadius="36" ShadowDepth="0" Color="Black" Opacity="0.65"/>
+                                        </Border.Effect>
+                                    </Border>
+                                    <Border CornerRadius="14" Background="#15FFFFFF" ClipToBounds="True">
+                                        <Border.OpacityMask>
+                                            <VisualBrush Stretch="Fill">
+                                                <VisualBrush.Visual>
+                                                    <Border Background="White" CornerRadius="14" Width="220" Height="220"/>
+                                                </VisualBrush.Visual>
+                                            </VisualBrush>
+                                        </Border.OpacityMask>
+                                        <Grid>
+                                            <TextBlock x:Name="LyricsArtworkPlaceholder" Text="♪" FontSize="48" Foreground="#33FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            <Image x:Name="LyricsArtwork" Stretch="UniformToFill"/>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+                                <TextBlock x:Name="LyricsTitle" Foreground="White" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,16,0,4" TextAlignment="Center"/>
+                                <TextBlock x:Name="LyricsArtist" Foreground="#77FFFFFF" FontSize="12" TextAlignment="Center" Margin="0,0,0,16"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,12">
+                                    <Button x:Name="LyricsPrevBtn" Style="{StaticResource PlayerIconBtn}" Click="PrevButton_Click">
+                                        <materialDesign:PackIcon Kind="SkipPrevious" Width="18" Height="18" Foreground="#AAFFFFFF"/>
+                                    </Button>
+                                    <Button x:Name="LyricsPlayBtn" Width="42" Height="42" Background="{DynamicResource AccentBrush}" BorderThickness="0" Click="PlayPauseButton_Click" Cursor="Hand" Margin="10,0">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="21">
+                                                    <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                        <Path x:Name="LPlayIcon" Data="M6,4 L6,20 L20,12 Z" Fill="White" Stretch="Uniform" Width="14" Height="14" Margin="2,0,0,0"/>
+                                                        <StackPanel x:Name="LPauseIcon" Orientation="Horizontal" Visibility="Collapsed">
+                                                            <Border Width="3" Height="12" Background="White" CornerRadius="1"/>
+                                                            <Border Width="3" Height="12" Background="White" CornerRadius="1" Margin="3,0,0,0"/>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                                <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#FF8F1F"/></Trigger></ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
+                                    <Button x:Name="LyricsNextBtn" Style="{StaticResource PlayerIconBtn}" Click="NextButton_Click">
+                                        <materialDesign:PackIcon Kind="SkipNext" Width="18" Height="18" Foreground="#AAFFFFFF"/>
+                                    </Button>
+                                </StackPanel>
+                                <Slider x:Name="LyricsProgress" Minimum="0" Maximum="100" Value="0" Width="220" Style="{StaticResource ModernSlider}" IsMoveToPointEnabled="True" PreviewMouseLeftButtonDown="ProgressSlider_PreviewMouseDown" PreviewMouseLeftButtonUp="ProgressSlider_PreviewMouseUp"/>
+                                <Grid Width="220" Margin="0,4,0,0">
+                                    <TextBlock x:Name="LyricsCurrentTime" Text="0:00" Foreground="#55FFFFFF" FontSize="10" HorizontalAlignment="Left"/>
+                                    <TextBlock x:Name="LyricsTotalTime" Text="0:00" Foreground="#55FFFFFF" FontSize="10" HorizontalAlignment="Right"/>
+                                </Grid>
+                            </StackPanel>
+                            <Border Grid.Column="1" Width="1" Background="#12FFFFFF" Margin="16,32"/>
+                            <Grid Grid.Column="2" Margin="0,32,32,32">
+                                <StackPanel x:Name="LyricsLoadingPanel" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="MusicNote" Width="36" Height="36" Foreground="#33FFFFFF" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                                    <TextBlock Text="Загрузка текста..." Foreground="#55FFFFFF" FontSize="13" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                                <StackPanel x:Name="LyricsNotFoundPanel" Visibility="Collapsed" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="MusicOff" Width="36" Height="36" Foreground="#33FFFFFF" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                                    <TextBlock Text="Текст не найден" Foreground="#55FFFFFF" FontSize="13" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                                <ScrollViewer x:Name="LyricsSyncedScroll" VerticalScrollBarVisibility="Hidden" Visibility="Collapsed" Padding="20,0">
+                                    <StackPanel x:Name="LyricsSyncedPanel"/>
+                                </ScrollViewer>
+                                <ScrollViewer x:Name="LyricsPlainScroll" VerticalScrollBarVisibility="Auto" Visibility="Collapsed" Padding="20,0">
+                                    <TextBlock x:Name="LyricsPlainText" Foreground="#AAFFFFFF" FontSize="14" TextWrapping="Wrap" LineHeight="24"/>
+                                </ScrollViewer>
+                            </Grid>
+                        </Grid>
+
+                        <!-- ═══ Settings Panel ═══ -->
+                        <ScrollViewer x:Name="SettingsPanel" Grid.RowSpan="2" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" Padding="36,24,36,28" Background="#E80A0A0A">
+                            <StackPanel MaxWidth="760" HorizontalAlignment="Stretch">
+                                <!-- ═══ Hero-заголовок с градиентом ═══ -->
+                                <Border CornerRadius="16" Padding="24,22" Margin="0,0,0,18">
+                                    <Border.Background>
+                                        <LinearGradientBrush x:Name="SettingsHeroBrush" StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="{StaticResource AccentLightColor}" Offset="0"/>
+                                            <GradientStop Color="{StaticResource AccentColor}" Offset="0.6"/>
+                                            <GradientStop Color="#0E0E0E" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Border x:Name="SettingsHeroIconBorder" Width="48" Height="48" CornerRadius="24" VerticalAlignment="Center">
+                                            <Border.Background>
+                                                <RadialGradientBrush>
+                                                    <GradientStop Color="#FF9E2E" Offset="0"/>
+                                                    <GradientStop Color="{DynamicResource AccentColor}" Offset="1"/>
+                                                </RadialGradientBrush>
+                                            </Border.Background>
+                                            <Border.Effect>
+                                                <DropShadowEffect BlurRadius="14" ShadowDepth="0" Color="{DynamicResource AccentColor}" Opacity="0.45"/>
+                                            </Border.Effect>
+                                            <materialDesign:PackIcon Kind="CogOutline" Width="24" Height="24" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <StackPanel VerticalAlignment="Center" Margin="16,0,0,0">
+                                            <TextBlock Text="Настройки" Foreground="White" FontSize="24" FontWeight="Bold"/>
+                                            <TextBlock Text="Персонализация интерфейса, фон и интеграции" Foreground="#88FFFFFF" FontSize="12" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- ═══ Внешний вид ═══ -->
+                                <Border Background="#0AFFFFFF" BorderBrush="#18FFFFFF" BorderThickness="1" CornerRadius="14" Padding="22,18" Margin="0,0,0,12">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                            <materialDesign:PackIcon Kind="PaletteOutline" Width="18" Height="18" Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Внешний вид" Foreground="White" FontSize="14" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                        </StackPanel>
+
+                                        <TextBlock Text="ЦВЕТОВАЯ ТЕМА" Foreground="#66FFFFFF" FontSize="9" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                        <Border Height="44" CornerRadius="8" Margin="0,0,0,12">
+                                            <Border.Background>
+                                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                    <GradientStop x:Name="SettingsPreviewStop1" Color="#FF0A0A0A" Offset="0"/>
+                                                    <GradientStop x:Name="SettingsPreviewStop2" Color="#FF161623" Offset="0.5"/>
+                                                    <GradientStop x:Name="SettingsPreviewStop3" Color="#FF0A0A0A" Offset="1"/>
+                                                </LinearGradientBrush>
+                                            </Border.Background>
+                                        </Border>
+                                        <UniformGrid Columns="6" Rows="2">
+                                            <UniformGrid.Resources>
+                                                <Style x:Key="ThemeCard" TargetType="Button">
+                                                    <Setter Property="Cursor" Value="Hand"/>
+                                                    <Setter Property="BorderThickness" Value="0"/>
+                                                    <Setter Property="Margin" Value="3,2"/>
+                                                    <Setter Property="Height" Value="56"/>
+                                                    <Setter Property="Foreground" Value="#CCFFFFFF"/>
+                                                    <Setter Property="FontSize" Value="9"/>
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="10" BorderBrush="#22FFFFFF" BorderThickness="1" RenderTransformOrigin="0.5,0.5">
+                                                                    <Border.RenderTransform><ScaleTransform x:Name="Sc" ScaleX="1" ScaleY="1"/></Border.RenderTransform>
+                                                                    <TextBlock Text="{TemplateBinding Tag}" Foreground="{TemplateBinding Foreground}" FontSize="{TemplateBinding FontSize}" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                                                </Border>
+                                                                <ControlTemplate.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                                        <Setter TargetName="Bd" Property="BorderThickness" Value="2"/>
+                                                                        <Trigger.EnterActions>
+                                                                            <BeginStoryboard><Storyboard>
+                                                                                <DoubleAnimation Storyboard.TargetName="Sc" Storyboard.TargetProperty="ScaleX" To="1.06" Duration="0:0:0.12"/>
+                                                                                <DoubleAnimation Storyboard.TargetName="Sc" Storyboard.TargetProperty="ScaleY" To="1.06" Duration="0:0:0.12"/>
+                                                                            </Storyboard></BeginStoryboard>
+                                                                        </Trigger.EnterActions>
+                                                                        <Trigger.ExitActions>
+                                                                            <BeginStoryboard><Storyboard>
+                                                                                <DoubleAnimation Storyboard.TargetName="Sc" Storyboard.TargetProperty="ScaleX" To="1" Duration="0:0:0.15"/>
+                                                                                <DoubleAnimation Storyboard.TargetName="Sc" Storyboard.TargetProperty="ScaleY" To="1" Duration="0:0:0.15"/>
+                                                                            </Storyboard></BeginStoryboard>
+                                                                        </Trigger.ExitActions>
+                                                                    </Trigger>
+                                                                </ControlTemplate.Triggers>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Style>
+                                            </UniformGrid.Resources>
+                                            <Button Click="Dark_Click" Tag="Тёмная" Style="{StaticResource ThemeCard}">
+                                                <Button.Background><LinearGradientBrush StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#0D0D0D" Offset="0"/><GradientStop Color="#1A1A2E" Offset="1"/></LinearGradientBrush></Button.Background>
+                                            </Button>
+                                            <Button Click="Blue_Click" Tag="Синяя" Style="{StaticResource ThemeCard}">
+                                                <Button.Background><LinearGradientBrush StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#0A0A1E" Offset="0"/><GradientStop Color="#1A1A4E" Offset="1"/></LinearGradientBrush></Button.Background>
+                                            </Button>
+                                            <Button Click="Purple_Click" Tag="Фиолетовая" Style="{StaticResource ThemeCard}">
+                                                <Button.Background><LinearGradientBrush StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#0F051E" Offset="0"/><GradientStop Color="#2D1B69" Offset="1"/></LinearGradientBrush></Button.Background>
+                                            </Button>
+                                            <Button Click="Burgundy_Click" Tag="Бордовая" Style="{StaticResource ThemeCard}">
+                                                <Button.Background><LinearGradientBrush StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#1A050D" Offset="0"/><GradientStop Color="#5A0A20" Offset="1"/></LinearGradientBrush></Button.Background>
+                                            </Button>
+                                            <Button Click="Green_Click" Tag="Зелёная" Style="{StaticResource ThemeCard}">
+                                                <Button.Background><LinearGradientBrush StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#05140A" Offset="0"/><GradientStop Color="#0E3D1F" Offset="1"/></LinearGradientBrush></Button.Background>
+                                            </Button>
+                                            <Button Click="Red_Click" Tag="Красная" Style="{StaticResource ThemeCard}">
+                                                <Button.Background><LinearGradientBrush StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#140505" Offset="0"/><GradientStop Color="#5A1010" Offset="1"/></LinearGradientBrush></Button.Background>
+                                            </Button>
+                                            <Button Click="Rose_Click" Tag="Розовая" Style="{StaticResource ThemeCard}">
+                                                <Button.Background><LinearGradientBrush StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#1A050F" Offset="0"/><GradientStop Color="#4E0A2A" Offset="1"/></LinearGradientBrush></Button.Background>
+                                            </Button>
+                                            <Button Click="Cyan_Click" Tag="Бирюзовая" Style="{StaticResource ThemeCard}">
+                                                <Button.Background><LinearGradientBrush StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#051414" Offset="0"/><GradientStop Color="#0A3D3D" Offset="1"/></LinearGradientBrush></Button.Background>
+                                            </Button>
+                                            <Button Click="Amber_Click" Tag="Янтарная" Style="{StaticResource ThemeCard}">
+                                                <Button.Background><LinearGradientBrush StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#1A1005" Offset="0"/><GradientStop Color="#4E350A" Offset="1"/></LinearGradientBrush></Button.Background>
+                                            </Button>
+                                            <Button Click="Mint_Click" Tag="Мятная" Style="{StaticResource ThemeCard}">
+                                                <Button.Background><LinearGradientBrush StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#051A0F" Offset="0"/><GradientStop Color="#0A4E2D" Offset="1"/></LinearGradientBrush></Button.Background>
+                                            </Button>
+                                            <Button Click="Lavender_Click" Tag="Лавандовая" Style="{StaticResource ThemeCard}">
+                                                <Button.Background><LinearGradientBrush StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#0F0520" Offset="0"/><GradientStop Color="#3D1A5A" Offset="1"/></LinearGradientBrush></Button.Background>
+                                            </Button>
+                                            <Button Click="Ocean_Click" Tag="Океан" Style="{StaticResource ThemeCard}">
+                                                <Button.Background><LinearGradientBrush StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#050A1A" Offset="0"/><GradientStop Color="#0A1A4E" Offset="1"/></LinearGradientBrush></Button.Background>
+                                            </Button>
+                                        </UniformGrid>
+                                        <Button Click="CustomTheme_Click" Cursor="Hand" HorizontalAlignment="Center" Margin="0,8,0,0">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="Bd" Background="#0AFFFFFF" BorderBrush="#22FFFFFF" BorderThickness="1" CornerRadius="8" Padding="14,7" RenderTransformOrigin="0.5,0.5">
+                                                        <Border.RenderTransform><ScaleTransform x:Name="Sc" ScaleX="1" ScaleY="1"/></Border.RenderTransform>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <materialDesign:PackIcon Kind="PaletteOutline" Width="16" Height="16" Foreground="#AAFFFFFF" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                            <TextBlock Text="Своя тема" Foreground="#CCFFFFFF" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                            <Setter TargetName="Bd" Property="Background" Value="#15FFFFFF"/>
+                                                            <Trigger.EnterActions>
+                                                                <BeginStoryboard><Storyboard>
+                                                                    <DoubleAnimation Storyboard.TargetName="Sc" Storyboard.TargetProperty="ScaleX" To="1.04" Duration="0:0:0.1"/>
+                                                                    <DoubleAnimation Storyboard.TargetName="Sc" Storyboard.TargetProperty="ScaleY" To="1.04" Duration="0:0:0.1"/>
+                                                                </Storyboard></BeginStoryboard>
+                                                            </Trigger.EnterActions>
+                                                            <Trigger.ExitActions>
+                                                                <BeginStoryboard><Storyboard>
+                                                                    <DoubleAnimation Storyboard.TargetName="Sc" Storyboard.TargetProperty="ScaleX" To="1" Duration="0:0:0.12"/>
+                                                                    <DoubleAnimation Storyboard.TargetName="Sc" Storyboard.TargetProperty="ScaleY" To="1" Duration="0:0:0.12"/>
+                                                                </Storyboard></BeginStoryboard>
+                                                            </Trigger.ExitActions>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- ═══ Фотообои ═══ -->
+                                <Border Background="#0AFFFFFF" BorderBrush="#18FFFFFF" BorderThickness="1" CornerRadius="14" Padding="22,18" Margin="0,0,0,12">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                            <materialDesign:PackIcon Kind="ImageOutline" Width="18" Height="18" Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Фотообои" Foreground="White" FontSize="14" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                        <Border Height="140" CornerRadius="10" Background="#0AFFFFFF" ClipToBounds="True" Margin="0,0,0,10" BorderBrush="#15FFFFFF" BorderThickness="1">
+                                            <Grid>
+                                                <Image x:Name="SettingsBgPreviewImage" Stretch="UniformToFill"/>
+                                                <StackPanel x:Name="SettingsBgPreviewEmpty" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <materialDesign:PackIcon Kind="ImageOffOutline" Width="28" Height="28" Foreground="#33FFFFFF" HorizontalAlignment="Center" Margin="0,0,0,6"/>
+                                                    <TextBlock x:Name="SettingsBgPreviewText" Text="Фон не выбран" Foreground="#55FFFFFF" FontSize="11" HorizontalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                        <Grid Margin="0,0,0,12">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <Grid Grid.Row="0" Margin="0,0,0,8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="92"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="40"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="Размытие" Foreground="#AAFFFFFF" FontSize="12" VerticalAlignment="Center"/>
+                                                <Slider x:Name="BgBlurSlider" Grid.Column="1" Minimum="0" Maximum="30" Value="0" Style="{StaticResource ModernSlider}" VerticalAlignment="Center" IsMoveToPointEnabled="True" ValueChanged="BgBlurSlider_ValueChanged"/>
+                                                <TextBlock x:Name="BgBlurValue" Grid.Column="2" Text="0px" Foreground="#88FFFFFF" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                            </Grid>
+                                            <Grid Grid.Row="1">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="92"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="40"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="Затемнение" Foreground="#AAFFFFFF" FontSize="12" VerticalAlignment="Center"/>
+                                                <Slider x:Name="BgDarkenSlider" Grid.Column="1" Minimum="0" Maximum="100" Value="50" Style="{StaticResource ModernSlider}" VerticalAlignment="Center" IsMoveToPointEnabled="True" ValueChanged="BgDarkenSlider_ValueChanged"/>
+                                                <TextBlock x:Name="BgDarkenValue" Grid.Column="2" Text="50%" Foreground="#88FFFFFF" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Grid>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Click="ChooseBackground_Click" Background="{DynamicResource AccentBrush}" Foreground="White" BorderThickness="0" FontSize="12" Cursor="Hand" Margin="0,0,8,0">
+                                                <Button.Template><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="6" Padding="16,8"><StackPanel Orientation="Horizontal"><materialDesign:PackIcon Kind="ImagePlus" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0"/><TextBlock Text="Выбрать фото" VerticalAlignment="Center"/></StackPanel></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#FF8F1F"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template>
+                                            </Button>
+                                            <Button Click="RemoveBackground_Click" Background="#15FFFFFF" Foreground="#AAFFFFFF" BorderThickness="0" FontSize="12" Cursor="Hand">
+                                                <Button.Template><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="6" Padding="16,8"><StackPanel Orientation="Horizontal"><materialDesign:PackIcon Kind="Close" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0"/><TextBlock Text="Убрать фон" VerticalAlignment="Center"/></StackPanel></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#25FFFFFF"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template>
+                                            </Button>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- ═══ Интеграции ═══ -->
+                                <Border Background="#0AFFFFFF" BorderBrush="#18FFFFFF" BorderThickness="1" CornerRadius="14" Padding="22,18" Margin="0,0,0,12">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                            <materialDesign:PackIcon Kind="PowerPlugOutline" Width="18" Height="18" Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Интеграции" Foreground="White" FontSize="14" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                        </StackPanel>
+
+                                        <Grid Margin="0,0,0,12">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="Discord Rich Presence" Foreground="#EEFFFFFF" FontSize="13" FontWeight="Medium"/>
+                                                <TextBlock Text="Показывать играющий трек в профиле Discord" Foreground="#66FFFFFF" FontSize="11" Margin="0,3,0,0"/>
+                                            </StackPanel>
+                                            <CheckBox x:Name="DiscordToggle" Grid.Column="1" Style="{StaticResource ToggleSwitch}" VerticalAlignment="Center" IsChecked="True" Checked="DiscordToggle_Changed" Unchecked="DiscordToggle_Changed"/>
+                                        </Grid>
+
+                                        <Border Height="1" Background="#10FFFFFF" Margin="0,0,0,12"/>
+
+                                        <Grid>
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="Анимации интерфейса" Foreground="#EEFFFFFF" FontSize="13" FontWeight="Medium"/>
+                                                <TextBlock Text="Плавные переходы, пульсации, эффекты" Foreground="#66FFFFFF" FontSize="11" Margin="0,3,0,0"/>
+                                            </StackPanel>
+                                            <CheckBox x:Name="AnimationsToggle" Grid.Column="1" Style="{StaticResource ToggleSwitch}" VerticalAlignment="Center" IsChecked="True" Checked="AnimationsToggle_Changed" Unchecked="AnimationsToggle_Changed"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- ═══ Импорт ═══ -->
+                                <Border Background="#0AFFFFFF" BorderBrush="#18FFFFFF" BorderThickness="1" CornerRadius="14" Padding="22,18" Margin="0,0,0,12">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                            <materialDesign:PackIcon Kind="DatabaseImportOutline" Width="18" Height="18" Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Импорт данных" Foreground="White" FontSize="14" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Перенесите свои плейлисты из Spotify через CSV-файл (Exportify, Soundiiz и др.)." Foreground="#77FFFFFF" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,12"/>
+                                        <Button Click="SpotifyImportButton_Click" BorderThickness="0" Cursor="Hand" HorizontalAlignment="Left" Foreground="White">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="Bd" Background="#15FFFFFF" BorderBrush="#22FFFFFF" BorderThickness="1" CornerRadius="8" Padding="14,9">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <materialDesign:PackIcon Kind="FileDownloadOutline" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{DynamicResource AccentBrush}"/>
+                                                            <TextBlock Text="Импорт из CSV" FontSize="12" FontWeight="Medium" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="Bd" Property="Background" Value="#22FFFFFF"/>
+                                                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- ═══ Применить ═══ -->
+                                <Button x:Name="SettingsApplyBtn" Foreground="White" BorderThickness="0" Click="SettingsApply_Click" FontSize="14" FontWeight="SemiBold" Cursor="Hand" Margin="0,8,0,18" HorizontalAlignment="Stretch" Height="48">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Bd" CornerRadius="10">
+                                                <Border.Background>
+                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                        <GradientStop Color="#FF9E2E" Offset="0"/>
+                                                        <GradientStop Color="{DynamicResource AccentColor}" Offset="1"/>
+                                                    </LinearGradientBrush>
+                                                </Border.Background>
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <materialDesign:PackIcon Kind="Check" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                    <TextBlock Text="Применить настройки" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bd" Property="Effect">
+                                                        <Setter.Value>
+                                                            <DropShadowEffect BlurRadius="16" ShadowDepth="0" Color="{DynamicResource AccentColor}" Opacity="0.65"/>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+
+                                <!-- ═══ Аккаунт ═══ -->
+                                <Border Background="#0AFFFFFF" BorderBrush="#18FFFFFF" BorderThickness="1" CornerRadius="14" Padding="22,18">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                            <materialDesign:PackIcon Kind="AccountCircleOutline" Width="18" Height="18" Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Аккаунт" Foreground="White" FontSize="14" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                        </StackPanel>
+
+                                        <TextBlock x:Name="SettingsAccountStatus" Text="Вы не вошли в SoundCloud" Foreground="#88FFFFFF" FontSize="12" Margin="0,0,0,12"/>
+
+                                        <Button x:Name="LoginButton" Click="LoginButton_Click" BorderThickness="0" FontSize="13" FontWeight="SemiBold" Cursor="Hand"
+                                                Background="{DynamicResource AccentBrush}" Foreground="White" Height="44" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="8">
+                                                        <Grid>
+                                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                                <materialDesign:PackIcon x:Name="LoginIcon" Kind="LoginVariant" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                                <TextBlock x:Name="LoginText" Text="Войти в SoundCloud" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"/>
+                                                            </StackPanel>
+                                                        </Grid>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="Bd" Property="Opacity" Value="0.88"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </Grid>
+
+                <!-- ═══ PLAYER ═══ -->
+                <Border Grid.Row="2" BorderThickness="0,1,0,0" BorderBrush="#1AFFFFFF">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="#C8141414" Offset="0"/>
+                            <GradientStop Color="#C80A0A0A" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <Grid Margin="20,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="280"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="200"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Инфо -->
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Grid Width="44" Height="44">
+                                <Border Width="44" Height="44" CornerRadius="8" Background="#0A0A0A">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="8" ShadowDepth="1" Direction="270" Color="Black" Opacity="0.4"/>
+                                    </Border.Effect>
+                                </Border>
+                                <Border Width="44" Height="44" CornerRadius="8" ClipToBounds="True" Background="#0AFFFFFF">
+                                    <Border.OpacityMask>
+                                        <VisualBrush Stretch="Fill">
+                                            <VisualBrush.Visual>
+                                                <Border Background="White" CornerRadius="8" Width="44" Height="44"/>
+                                            </VisualBrush.Visual>
+                                        </VisualBrush>
+                                    </Border.OpacityMask>
+                                    <Grid>
+                                        <TextBlock x:Name="PlayerArtworkPlaceholder" Text="♪" FontSize="18" Foreground="#33FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <Image x:Name="PlayerArtwork" Stretch="UniformToFill"/>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                            <StackPanel VerticalAlignment="Center" Margin="12,0,0,0">
+                                <TextBlock x:Name="PlayerTitle" Text="Ничего не играет" Foreground="White" FontWeight="Medium" FontSize="13" TextTrimming="CharacterEllipsis" MaxWidth="190"/>
+                                <TextBlock x:Name="PlayerArtist" Foreground="#66FFFFFF" FontSize="11" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" MaxWidth="190"/>
+                            </StackPanel>
+                            <Button x:Name="LyricsButton" Width="28" Height="28" Margin="8,0,0,0" Click="LyricsButton_Click" Cursor="Hand" ToolTip="Текст" Visibility="Collapsed" Background="Transparent" BorderThickness="0">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="Bd" Background="Transparent" CornerRadius="4">
+                                            <materialDesign:PackIcon Kind="TextBoxOutline" Width="14" Height="14" Foreground="#55FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#15FFFFFF"/></Trigger></ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </StackPanel>
+
+                        <!-- Контролы -->
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,4">
+                                <Button x:Name="ShuffleButton" Click="ShuffleButton_Click" Style="{StaticResource PlayerIconBtn}" ToolTip="Перемешать">
+                                    <materialDesign:PackIcon x:Name="ShuffleIcon" Kind="Shuffle" Width="16" Height="16" Foreground="#88FFFFFF"/>
+                                </Button>
+                                <Button x:Name="PrevButton" Click="PrevButton_Click" Style="{StaticResource PlayerIconBtn}" Margin="6,0">
+                                    <materialDesign:PackIcon Kind="SkipPrevious" Width="20" Height="20" Foreground="#DDFFFFFF"/>
+                                </Button>
+                                <Button x:Name="PlayPauseButton" Width="40" Height="40" BorderThickness="0" Click="PlayPauseButton_Click" Cursor="Hand" RenderTransformOrigin="0.5,0.5">
+                                    <Button.RenderTransform>
+                                        <ScaleTransform x:Name="PlayBtnScale" ScaleX="1" ScaleY="1"/>
+                                    </Button.RenderTransform>
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Grid>
+                                                <Ellipse Width="40" Height="40" x:Name="PlayEllipse">
+                                                    <Ellipse.Fill>
+                                                        <RadialGradientBrush Center="0.4,0.3" GradientOrigin="0.4,0.3" RadiusX="0.7" RadiusY="0.7">
+                                                            <GradientStop Color="{DynamicResource AccentLightColor}" Offset="0"/>
+                                                            <GradientStop Color="{DynamicResource AccentColor}" Offset="1"/>
+                                                        </RadialGradientBrush>
+                                                    </Ellipse.Fill>
+                                                    <Ellipse.Effect>
+                                                        <DropShadowEffect x:Name="PlayGlow" BlurRadius="14" ShadowDepth="0" Color="{DynamicResource AccentColor}" Opacity="0.55"/>
+                                                    </Ellipse.Effect>
+                                                    <Ellipse.Triggers>
+                                                        <EventTrigger RoutedEvent="Loaded">
+                                                            <BeginStoryboard><Storyboard RepeatBehavior="Forever">
+                                                                <DoubleAnimation Storyboard.TargetName="PlayGlow" Storyboard.TargetProperty="Opacity" From="0.55" To="0.3" Duration="0:0:2" AutoReverse="True">
+                                                                    <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut"/></DoubleAnimation.EasingFunction>
+                                                                </DoubleAnimation>
+                                                            </Storyboard></BeginStoryboard>
+                                                        </EventTrigger>
+                                                    </Ellipse.Triggers>
+                                                </Ellipse>
+                                                <Border x:Name="Bd" Width="40" Height="40" CornerRadius="20" Background="Transparent">
+                                                    <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                        <Path x:Name="PlayIcon" Data="M6,4 L6,20 L20,12 Z" Fill="White" Stretch="Uniform" Width="14" Height="14" Margin="2,0,0,0"/>
+                                                        <StackPanel x:Name="PauseIcon" Orientation="Horizontal" Visibility="Collapsed">
+                                                            <Border Width="3" Height="12" Background="White" CornerRadius="1"/>
+                                                            <Border Width="3" Height="12" Background="White" CornerRadius="1" Margin="3,0,0,0"/>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </Grid>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background" Value="#22FFFFFF"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                                <Button x:Name="NextButton" Click="NextButton_Click" Style="{StaticResource PlayerIconBtn}" Margin="6,0">
+                                    <materialDesign:PackIcon Kind="SkipNext" Width="20" Height="20" Foreground="#DDFFFFFF"/>
+                                </Button>
+                                <Button x:Name="RepeatButton" Click="RepeatButton_Click" Style="{StaticResource PlayerIconBtn}" ToolTip="Повтор">
+                                    <materialDesign:PackIcon x:Name="RepeatIcon" Kind="Repeat" Width="16" Height="16" Foreground="#88FFFFFF"/>
+                                </Button>
+                            </StackPanel>
+                            <Grid HorizontalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="320"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" x:Name="CurrentTimeText" Text="0:00" Foreground="#55FFFFFF" FontSize="10" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <Slider Grid.Column="1" x:Name="ProgressSlider" Minimum="0" Maximum="100" Value="0" Style="{StaticResource ModernSlider}" IsMoveToPointEnabled="True" PreviewMouseLeftButtonDown="ProgressSlider_PreviewMouseDown" PreviewMouseLeftButtonUp="ProgressSlider_PreviewMouseUp"/>
+                                <TextBlock Grid.Column="2" x:Name="TotalTimeText" Text="0:00" Foreground="#55FFFFFF" FontSize="10" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Громкость + EQ -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
+                            <Button x:Name="EqButton" Click="EqButton_Click" Background="Transparent" BorderThickness="0" Width="32" Height="32" Cursor="Hand" Margin="0,0,8,0">
+                                <Button.Template><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="16" Width="32" Height="32"><materialDesign:PackIcon Kind="Equalizer" Width="18" Height="18" Foreground="#88FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#15FFFFFF"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template>
+                            </Button>
+                            <materialDesign:PackIcon x:Name="VolumeIcon" Kind="VolumeHigh" Foreground="#88FFFFFF" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0" RenderTransformOrigin="0.5,0.5">
+                                <materialDesign:PackIcon.RenderTransform><ScaleTransform ScaleX="1" ScaleY="1"/></materialDesign:PackIcon.RenderTransform>
+                            </materialDesign:PackIcon>
+                            <Slider x:Name="VolumeSlider" Minimum="0" Maximum="100" Value="80" Width="100" Style="{StaticResource ModernSlider}" VerticalAlignment="Center" ValueChanged="VolumeSlider_ValueChanged"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- ═══ EQ Popup ═══ -->
+            <Popup x:Name="EqPopup" PlacementTarget="{Binding ElementName=EqButton}" Placement="Top" IsOpen="False" AllowsTransparency="True" PopupAnimation="Slide" VerticalOffset="-8">
+                <Border Background="#E80E0E0E" CornerRadius="14" Padding="0" BorderThickness="1" BorderBrush="#22FFFFFF" Margin="0,0,0,4">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="24" ShadowDepth="2" Opacity="0.5" Color="Black"/>
+                    </Border.Effect>
+                    <StackPanel>
+                        <!-- Hero-заголовок -->
+                        <Border CornerRadius="14,14,0,0" Padding="18,14,18,12">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                    <GradientStop Color="#1AFFFFFF" Offset="0"/>
+                                    <GradientStop Color="#0AFFFFFF" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Border Width="28" Height="28" CornerRadius="14" Background="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,10,0">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="10" ShadowDepth="0" Color="{DynamicResource AccentColor}" Opacity="0.35"/>
+                                    </Border.Effect>
+                                    <materialDesign:PackIcon Kind="Equalizer" Width="16" Height="16" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="Эквалайзер" Foreground="White" FontSize="14" FontWeight="Bold" VerticalAlignment="Center"/>
+                                <TextBlock Text="10-полосный" Foreground="#66FFFFFF" FontSize="10" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Пресеты -->
+                        <Border Padding="14,8,14,6">
+                            <StackPanel>
+                                <TextBlock Text="ПРЕСЕТЫ" Foreground="#55FFFFFF" FontSize="8" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,6"/>
+                                <UniformGrid Columns="5" Rows="1" HorizontalAlignment="Center">
+                                    <Button Tag="Flat" Click="EqPreset_Flat" Margin="2,0" Cursor="Hand"><Button.Template><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="#0AFFFFFF" CornerRadius="6" Padding="0,5" Margin="0,0,2,0"><TextBlock Text="Flat" Foreground="#AAFFFFFF" FontSize="10" HorizontalAlignment="Center" FontWeight="Medium"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#1AFFFFFF"/><Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template></Button>
+                                    <Button Tag="Bass" Click="EqPreset_Bass" Margin="2,0" Cursor="Hand"><Button.Template><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="#0AFFFFFF" CornerRadius="6" Padding="0,5" Margin="0,0,2,0"><TextBlock Text="Bass" Foreground="#AAFFFFFF" FontSize="10" HorizontalAlignment="Center" FontWeight="Medium"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#1AFFFFFF"/><Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template></Button>
+                                    <Button Tag="Treble" Click="EqPreset_Treble" Margin="2,0" Cursor="Hand"><Button.Template><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="#0AFFFFFF" CornerRadius="6" Padding="0,5" Margin="0,0,2,0"><TextBlock Text="Treble" Foreground="#AAFFFFFF" FontSize="10" HorizontalAlignment="Center" FontWeight="Medium"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#1AFFFFFF"/><Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template></Button>
+                                    <Button Tag="Vocal" Click="EqPreset_Vocal" Margin="2,0" Cursor="Hand"><Button.Template><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="#0AFFFFFF" CornerRadius="6" Padding="0,5" Margin="0,0,2,0"><TextBlock Text="Vocal" Foreground="#AAFFFFFF" FontSize="10" HorizontalAlignment="Center" FontWeight="Medium"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#1AFFFFFF"/><Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template></Button>
+                                    <Button Tag="Loud" Click="EqPreset_Loud" Margin="2,0" Cursor="Hand"><Button.Template><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="#0AFFFFFF" CornerRadius="6" Padding="0,5"><TextBlock Text="Loud" Foreground="#AAFFFFFF" FontSize="10" HorizontalAlignment="Center" FontWeight="Medium"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#1AFFFFFF"/><Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template></Button>
+                                </UniformGrid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- dB шкала -->
+                        <Grid Margin="14,0,14,4" HorizontalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="18"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" VerticalAlignment="Stretch">
+                                <TextBlock Text="+12" Foreground="#44FFFFFF" FontSize="7" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,3,0"/>
+                                <TextBlock Text="0" Foreground="#55FFFFFF" FontSize="7" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,3,0" FontWeight="Medium"/>
+                                <TextBlock Text="-12" Foreground="#44FFFFFF" FontSize="7" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,3,0"/>
+                            </StackPanel>
+                            <!-- Слайдеры -->
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center">
+                                <StackPanel Width="36" HorizontalAlignment="Center" Margin="1,0"><TextBlock x:Name="EqVal0" Text="0" Foreground="{DynamicResource AccentBrush}" FontSize="9" HorizontalAlignment="Center" FontWeight="SemiBold" Margin="0,0,0,3"/><Slider x:Name="EqSlider0" Minimum="-12" Maximum="12" Value="0" Orientation="Vertical" Height="110" Style="{StaticResource EqVerticalSlider}" ValueChanged="EqSlider_ValueChanged"/><TextBlock Text="32" Foreground="#55FFFFFF" FontSize="8" HorizontalAlignment="Center" Margin="0,5,0,0"/></StackPanel>
+                                <StackPanel Width="36" HorizontalAlignment="Center" Margin="1,0"><TextBlock x:Name="EqVal1" Text="0" Foreground="{DynamicResource AccentBrush}" FontSize="9" HorizontalAlignment="Center" FontWeight="SemiBold" Margin="0,0,0,3"/><Slider x:Name="EqSlider1" Minimum="-12" Maximum="12" Value="0" Orientation="Vertical" Height="110" Style="{StaticResource EqVerticalSlider}" ValueChanged="EqSlider_ValueChanged"/><TextBlock Text="64" Foreground="#55FFFFFF" FontSize="8" HorizontalAlignment="Center" Margin="0,5,0,0"/></StackPanel>
+                                <StackPanel Width="36" HorizontalAlignment="Center" Margin="1,0"><TextBlock x:Name="EqVal2" Text="0" Foreground="{DynamicResource AccentBrush}" FontSize="9" HorizontalAlignment="Center" FontWeight="SemiBold" Margin="0,0,0,3"/><Slider x:Name="EqSlider2" Minimum="-12" Maximum="12" Value="0" Orientation="Vertical" Height="110" Style="{StaticResource EqVerticalSlider}" ValueChanged="EqSlider_ValueChanged"/><TextBlock Text="125" Foreground="#55FFFFFF" FontSize="8" HorizontalAlignment="Center" Margin="0,5,0,0"/></StackPanel>
+                                <StackPanel Width="36" HorizontalAlignment="Center" Margin="1,0"><TextBlock x:Name="EqVal3" Text="0" Foreground="{DynamicResource AccentBrush}" FontSize="9" HorizontalAlignment="Center" FontWeight="SemiBold" Margin="0,0,0,3"/><Slider x:Name="EqSlider3" Minimum="-12" Maximum="12" Value="0" Orientation="Vertical" Height="110" Style="{StaticResource EqVerticalSlider}" ValueChanged="EqSlider_ValueChanged"/><TextBlock Text="250" Foreground="#55FFFFFF" FontSize="8" HorizontalAlignment="Center" Margin="0,5,0,0"/></StackPanel>
+                                <StackPanel Width="36" HorizontalAlignment="Center" Margin="1,0"><TextBlock x:Name="EqVal4" Text="0" Foreground="{DynamicResource AccentBrush}" FontSize="9" HorizontalAlignment="Center" FontWeight="SemiBold" Margin="0,0,0,3"/><Slider x:Name="EqSlider4" Minimum="-12" Maximum="12" Value="0" Orientation="Vertical" Height="110" Style="{StaticResource EqVerticalSlider}" ValueChanged="EqSlider_ValueChanged"/><TextBlock Text="500" Foreground="#55FFFFFF" FontSize="8" HorizontalAlignment="Center" Margin="0,5,0,0"/></StackPanel>
+                                <StackPanel Width="36" HorizontalAlignment="Center" Margin="1,0"><TextBlock x:Name="EqVal5" Text="0" Foreground="{DynamicResource AccentBrush}" FontSize="9" HorizontalAlignment="Center" FontWeight="SemiBold" Margin="0,0,0,3"/><Slider x:Name="EqSlider5" Minimum="-12" Maximum="12" Value="0" Orientation="Vertical" Height="110" Style="{StaticResource EqVerticalSlider}" ValueChanged="EqSlider_ValueChanged"/><TextBlock Text="1k" Foreground="#55FFFFFF" FontSize="8" HorizontalAlignment="Center" Margin="0,5,0,0"/></StackPanel>
+                                <StackPanel Width="36" HorizontalAlignment="Center" Margin="1,0"><TextBlock x:Name="EqVal6" Text="0" Foreground="{DynamicResource AccentBrush}" FontSize="9" HorizontalAlignment="Center" FontWeight="SemiBold" Margin="0,0,0,3"/><Slider x:Name="EqSlider6" Minimum="-12" Maximum="12" Value="0" Orientation="Vertical" Height="110" Style="{StaticResource EqVerticalSlider}" ValueChanged="EqSlider_ValueChanged"/><TextBlock Text="2k" Foreground="#55FFFFFF" FontSize="8" HorizontalAlignment="Center" Margin="0,5,0,0"/></StackPanel>
+                                <StackPanel Width="36" HorizontalAlignment="Center" Margin="1,0"><TextBlock x:Name="EqVal7" Text="0" Foreground="{DynamicResource AccentBrush}" FontSize="9" HorizontalAlignment="Center" FontWeight="SemiBold" Margin="0,0,0,3"/><Slider x:Name="EqSlider7" Minimum="-12" Maximum="12" Value="0" Orientation="Vertical" Height="110" Style="{StaticResource EqVerticalSlider}" ValueChanged="EqSlider_ValueChanged"/><TextBlock Text="4k" Foreground="#55FFFFFF" FontSize="8" HorizontalAlignment="Center" Margin="0,5,0,0"/></StackPanel>
+                                <StackPanel Width="36" HorizontalAlignment="Center" Margin="1,0"><TextBlock x:Name="EqVal8" Text="0" Foreground="{DynamicResource AccentBrush}" FontSize="9" HorizontalAlignment="Center" FontWeight="SemiBold" Margin="0,0,0,3"/><Slider x:Name="EqSlider8" Minimum="-12" Maximum="12" Value="0" Orientation="Vertical" Height="110" Style="{StaticResource EqVerticalSlider}" ValueChanged="EqSlider_ValueChanged"/><TextBlock Text="8k" Foreground="#55FFFFFF" FontSize="8" HorizontalAlignment="Center" Margin="0,5,0,0"/></StackPanel>
+                                <StackPanel Width="36" HorizontalAlignment="Center" Margin="1,0"><TextBlock x:Name="EqVal9" Text="0" Foreground="{DynamicResource AccentBrush}" FontSize="9" HorizontalAlignment="Center" FontWeight="SemiBold" Margin="0,0,0,3"/><Slider x:Name="EqSlider9" Minimum="-12" Maximum="12" Value="0" Orientation="Vertical" Height="110" Style="{StaticResource EqVerticalSlider}" ValueChanged="EqSlider_ValueChanged"/><TextBlock Text="16k" Foreground="#55FFFFFF" FontSize="8" HorizontalAlignment="Center" Margin="0,5,0,0"/></StackPanel>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Кнопка сброса -->
+                        <Border Padding="14,0,14,12">
+                            <Button Click="EqReset_Click" Cursor="Hand" HorizontalAlignment="Center"><Button.Template><ControlTemplate TargetType="Button"><Border x:Name="Bd" Background="#0AFFFFFF" BorderBrush="#15FFFFFF" BorderThickness="1" CornerRadius="8" Padding="16,6"><StackPanel Orientation="Horizontal"><materialDesign:PackIcon Kind="Refresh" Width="12" Height="12" Foreground="#88FFFFFF" VerticalAlignment="Center" Margin="0,0,6,0"/><TextBlock Text="Сбросить" Foreground="#99FFFFFF" FontSize="10" FontWeight="Medium" VerticalAlignment="Center"/></StackPanel></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#15FFFFFF"/><Setter TargetName="Bd" Property="BorderBrush" Value="#25FFFFFF"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template></Button>
+                        </Border>
+                    </StackPanel>
+                </Border>
+            </Popup>
+        </Grid>
+    </Border>
+</Window>

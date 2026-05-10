@@ -1,0 +1,158 @@
+<Window x:Class="SoundCloudClient.BugReportDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="Сообщить о баге"
+        Height="540" Width="480"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        Background="Transparent"
+        AllowsTransparency="True"
+        FontFamily="Segoe UI"
+        UseLayoutRounding="True"
+        TextOptions.TextRenderingMode="ClearType">
+    <Border CornerRadius="14" Background="#0E0E0E" BorderBrush="#22FFFFFF" BorderThickness="1">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="30" ShadowDepth="0" Opacity="0.7" Color="Black"/>
+        </Border.Effect>
+        <Grid Margin="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Grid Grid.Row="0" Margin="22,18,12,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Width="36" Height="36" CornerRadius="18" Background="{DynamicResource AccentBrush}" VerticalAlignment="Center">
+                        <materialDesign:PackIcon Kind="BugOutline" Width="18" Height="18" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center" Margin="12,0,0,0">
+                        <TextBlock Text="Сообщить о баге" Foreground="White" FontSize="16" FontWeight="Bold"/>
+                        <TextBlock Text="Помогите сделать приложение лучше" Foreground="#77FFFFFF" FontSize="11"/>
+                    </StackPanel>
+                </StackPanel>
+                <Button Click="Close_Click" Width="28" Height="28" HorizontalAlignment="Right" VerticalAlignment="Top" Background="Transparent" BorderThickness="0" Cursor="Hand">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="Transparent" CornerRadius="14">
+                                <materialDesign:PackIcon Kind="Close" Width="14" Height="14" Foreground="#88FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#15FFFFFF"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </Grid>
+
+            <!-- Body -->
+            <ScrollViewer Grid.Row="1" Padding="22,18,22,8" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <TextBlock Text="ТИП БАГА" Foreground="#66FFFFFF" FontSize="9" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <UniformGrid Columns="2" Rows="3">
+                        <UniformGrid.Resources>
+                            <Style x:Key="BugTypeRadio" TargetType="RadioButton">
+                                <Setter Property="Cursor" Value="Hand"/>
+                                <Setter Property="Margin" Value="0,0,8,8"/>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="RadioButton">
+                                            <Border x:Name="Bd" Background="#0AFFFFFF" BorderBrush="#1AFFFFFF" BorderThickness="1" CornerRadius="8" Padding="10,9">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border x:Name="Ring" Width="14" Height="14" CornerRadius="7" BorderBrush="#55FFFFFF" BorderThickness="1.5" Background="Transparent" VerticalAlignment="Center">
+                                                        <Border x:Name="Dot" Width="6" Height="6" CornerRadius="3" Background="{DynamicResource AccentBrush}" Visibility="Collapsed"/>
+                                                    </Border>
+                                                    <TextBlock Text="{TemplateBinding Content}" Foreground="#DDFFFFFF" FontSize="12" Margin="9,0,0,0" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background" Value="#15FFFFFF"/>
+                                                </Trigger>
+                                                <Trigger Property="IsChecked" Value="True">
+                                                    <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                    <Setter TargetName="Bd" Property="Background" Value="#1AFFFFFF"/>
+                                                    <Setter TargetName="Ring" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                    <Setter TargetName="Dot" Property="Visibility" Value="Visible"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </UniformGrid.Resources>
+                        <RadioButton x:Name="TypeUI" GroupName="BugType" Content="Интерфейс / визуал" Style="{StaticResource BugTypeRadio}" IsChecked="True"/>
+                        <RadioButton x:Name="TypeCrash" GroupName="BugType" Content="Краш / зависание" Style="{StaticResource BugTypeRadio}"/>
+                        <RadioButton x:Name="TypeAudio" GroupName="BugType" Content="Аудио / плеер" Style="{StaticResource BugTypeRadio}"/>
+                        <RadioButton x:Name="TypeSearch" GroupName="BugType" Content="Поиск / SoundCloud" Style="{StaticResource BugTypeRadio}"/>
+                        <RadioButton x:Name="TypeLibrary" GroupName="BugType" Content="Библиотека / лайки" Style="{StaticResource BugTypeRadio}"/>
+                        <RadioButton x:Name="TypeOther" GroupName="BugType" Content="Другое" Style="{StaticResource BugTypeRadio}"/>
+                    </UniformGrid>
+
+                    <TextBlock Text="ОПИСАНИЕ" Foreground="#66FFFFFF" FontSize="9" FontWeight="SemiBold" Margin="0,8,0,8"/>
+                    <Border Background="#0AFFFFFF" BorderBrush="#1AFFFFFF" BorderThickness="1" CornerRadius="8" Padding="10,8">
+                        <TextBox x:Name="DescBox" Background="Transparent" BorderThickness="0" Foreground="White" CaretBrush="White" FontSize="12" MinHeight="100" MaxHeight="150" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
+                    </Border>
+                    <TextBlock Text="Опишите что произошло, шаги для воспроизведения" Foreground="#55FFFFFF" FontSize="10" Margin="2,4,0,0"/>
+
+                    <CheckBox x:Name="IncludeContact" Margin="0,12,0,0" Foreground="#AAFFFFFF" Content="Указать контакт (Discord/Telegram) для ответа" FontSize="11"/>
+                    <Border x:Name="ContactBox" Background="#0AFFFFFF" BorderBrush="#1AFFFFFF" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,8,0,0" Visibility="Collapsed">
+                        <TextBox x:Name="ContactInput" Background="Transparent" BorderThickness="0" Foreground="White" CaretBrush="White" FontSize="12"/>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Footer -->
+            <Grid Grid.Row="2" Margin="22,8,22,18">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="StatusText" Grid.Column="0" Foreground="#88FFFFFF" FontSize="11" VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Click="Close_Click" Cursor="Hand" Background="Transparent" BorderThickness="0" Foreground="#AAFFFFFF" Margin="0,0,8,0">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" Background="Transparent" CornerRadius="8" Padding="14,9">
+                                    <TextBlock Text="Отмена" FontSize="12"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#15FFFFFF"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                    <Button x:Name="SubmitBtn" Click="Submit_Click" Cursor="Hand" Foreground="White" BorderThickness="0">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" Background="{DynamicResource AccentBrush}" CornerRadius="8" Padding="16,9">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Send" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                        <TextBlock Text="Отправить" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Effect">
+                                            <Setter.Value>
+                                                <DropShadowEffect BlurRadius="14" ShadowDepth="0" Color="{DynamicResource AccentColor}" Opacity="0.65"/>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

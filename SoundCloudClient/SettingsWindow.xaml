@@ -1,0 +1,262 @@
+<Window x:Class="SoundCloudClient.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        Title="Настройки" Height="480" Width="420"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        Background="#0D0D0D"
+        WindowStyle="None"
+        Icon="pack://application:,,,/Resources/app_icon.png">
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome GlassFrameThickness="0" CornerRadius="12" ResizeBorderThickness="4"
+                            CaptionHeight="0" NonClientFrameEdges="None"/>
+    </shell:WindowChrome.WindowChrome>
+
+    <Border ClipToBounds="True" CornerRadius="12">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="40"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Titlebar -->
+            <Grid Grid.Row="0" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown"
+                  Background="#08FFFFFF">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left"
+                            VerticalAlignment="Center" Margin="15,0">
+                    <Image Source="pack://application:,,,/Resources/app_icon.png"
+                           Width="18" Height="18" Margin="0,0,6,0" VerticalAlignment="Center"
+                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <TextBlock Text="Настройки" Foreground="#CCFFFFFF" FontWeight="SemiBold"
+                               VerticalAlignment="Center" FontSize="12"/>
+                </StackPanel>
+                <Button Content="✕" HorizontalAlignment="Right" VerticalAlignment="Center"
+                        Width="36" Height="36" Margin="0,0,6,0"
+                        Background="Transparent" BorderThickness="0"
+                        Foreground="#FFAA88" FontSize="13"
+                        Click="Close_Click" Cursor="Hand">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="6">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#25FFFFFF"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </Grid>
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="20,10,20,20">
+                    <!-- Фоновое изображение -->
+                    <TextBlock Text="ФОТООБОИ" Foreground="#44FFFFFF" FontSize="10"
+                               FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <TextBlock Text="Выбери изображение для фона приложения" Foreground="#99FFFFFF"
+                               FontSize="11" Margin="0,0,0,10" TextWrapping="Wrap"/>
+
+                    <Button Content="Выбрать фото" Click="ChooseBackground_Click"
+                            Background="#20FFFFFF" Foreground="White" BorderThickness="0"
+                            Padding="12,8" Margin="0,0,0,8" Cursor="Hand">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="8" Padding="12,8">
+                                    <ContentPresenter HorizontalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#30FFFFFF"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
+                    <Border x:Name="BgPreview" Height="60" CornerRadius="8" Margin="0,0,0,8"
+                            Background="#12FFFFFF" ClipToBounds="True">
+                        <Grid>
+                            <Image x:Name="BgPreviewImage" Stretch="UniformToFill"/>
+                            <TextBlock x:Name="BgPreviewText" Text="Фон не выбран"
+                                       Foreground="#44FFFFFF" FontSize="11"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+
+                    <Button Content="Убрать фон" Click="RemoveBackground_Click"
+                            Background="#15FFFFFF" Foreground="#99FFFFFF" BorderThickness="0"
+                            Padding="12,6" Margin="0,0,0,16" FontSize="11" Cursor="Hand">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="6" Padding="12,6">
+                                    <ContentPresenter HorizontalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#25FFFFFF"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
+                    <!-- Цветовая тема -->
+                    <TextBlock Text="ЦВЕТОВАЯ ТЕМА" Foreground="#44FFFFFF" FontSize="10"
+                               FontWeight="SemiBold" Margin="0,0,0,8"/>
+
+                    <WrapPanel Margin="0,0,0,16">
+                        <Button Content="Тёмный" Margin="0,0,6,6" Padding="12,6"
+                                Background="#333333" Foreground="White" BorderThickness="0" FontSize="11"
+                                Click="Dark_Click" Cursor="Hand">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="8" Padding="12,6">
+                                        <ContentPresenter HorizontalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="Opacity" Value="0.8"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        <Button Content="Синий" Margin="0,0,6,6" Padding="12,6"
+                                Background="#1A1A4E" Foreground="White" BorderThickness="0" FontSize="11"
+                                Click="Blue_Click" Cursor="Hand">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="8" Padding="12,6">
+                                        <ContentPresenter HorizontalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="Opacity" Value="0.8"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        <Button Content="Фиолетовый" Margin="0,0,6,6" Padding="12,6"
+                                Background="#2D1B69" Foreground="White" BorderThickness="0" FontSize="11"
+                                Click="Purple_Click" Cursor="Hand">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="8" Padding="12,6">
+                                        <ContentPresenter HorizontalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="Opacity" Value="0.8"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        <Button Content="Бордовый" Margin="0,0,6,6" Padding="12,6"
+                                Background="#3D0D1A" Foreground="White" BorderThickness="0" FontSize="11"
+                                Click="Burgundy_Click" Cursor="Hand">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="8" Padding="12,6">
+                                        <ContentPresenter HorizontalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="Opacity" Value="0.8"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        <Button Content="Зелёный" Margin="0,0,6,6" Padding="12,6"
+                                Background="#0D2B1A" Foreground="White" BorderThickness="0" FontSize="11"
+                                Click="Green_Click" Cursor="Hand">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="8" Padding="12,6">
+                                        <ContentPresenter HorizontalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="Opacity" Value="0.8"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        <Button Content="Красный" Margin="0,0,6,6" Padding="12,6"
+                                Background="#2B0D0D" Foreground="White" BorderThickness="0" FontSize="11"
+                                Click="Red_Click" Cursor="Hand">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="8" Padding="12,6">
+                                        <ContentPresenter HorizontalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="Opacity" Value="0.8"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </WrapPanel>
+
+                    <!-- Groq API -->
+                    <TextBlock Text="ИИ-РЕКОМЕНДАЦИИ" Foreground="#44FFFFFF" FontSize="10"
+                               FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <TextBlock Text="API-ключ Groq для умных рекомендаций (бесплатно на console.groq.com)"
+                               Foreground="#99FFFFFF" FontSize="11" Margin="0,0,0,8" TextWrapping="Wrap"/>
+                    <TextBox x:Name="GroqApiKeyBox" Background="#15FFFFFF" Foreground="#DDFFFFFF"
+                             BorderThickness="1" BorderBrush="#25FFFFFF" Padding="10,8"
+                             FontSize="12" Margin="0,0,0,4" MaxLength="100"
+                             SelectionBrush="#CC7B3A" CaretBrush="#CC7B3A">
+                        <TextBox.Resources>
+                            <Style TargetType="PasswordBox" BasedOn="{StaticResource {x:Type PasswordBox}}"/>
+                        </TextBox.Resources>
+                    </TextBox>
+                    <TextBlock x:Name="GroqKeyStatus" Text="" Foreground="#66FFFFFF" FontSize="10"
+                               Margin="0,0,0,16"/>
+
+                    <!-- Превью -->
+                    <TextBlock Text="ПРЕВЬЮ" Foreground="#44FFFFFF" FontSize="10"
+                               FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <Border x:Name="PreviewBorder" Height="60" CornerRadius="8" Margin="0,0,0,16">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop x:Name="PreviewStop1" Color="#FF0D0D0D" Offset="0"/>
+                                <GradientStop x:Name="PreviewStop2" Color="#FF1A1A2E" Offset="0.5"/>
+                                <GradientStop x:Name="PreviewStop3" Color="#FF0D0D0D" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <TextBlock Text="SC Native" Foreground="#44FFFFFF"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   FontWeight="Medium" FontSize="12"/>
+                    </Border>
+
+                    <!-- Применить -->
+                    <Button Content="Применить" Background="#CC7B3A" Foreground="White"
+                            BorderThickness="0" Padding="15,8" Click="ApplyButton_Click"
+                            FontSize="13" FontWeight="SemiBold" Cursor="Hand">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="8" Padding="15,8">
+                                    <ContentPresenter HorizontalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#DD8F4E"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</Window>
