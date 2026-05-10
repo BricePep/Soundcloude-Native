@@ -9,3 +9,6 @@ nul
 Installer/Payload/app.zip
 Installer/Payload/app/
 Installer/Payload/uninstaller/
+next_session.md
+setup.nsi
+build-release.bat
