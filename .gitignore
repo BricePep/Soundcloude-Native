@@ -2,7 +2,7 @@ bin/
 obj/
 .vs/
 ReleaseOutput/
-nul
+.devin/
 *.user
 *.suo
 *.cache
