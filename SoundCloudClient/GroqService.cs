@@ -12,7 +12,7 @@ namespace SoundCloudClient
     public class GroqService
     {
         private readonly HttpClient _http = new();
-        private string? _apiKey = "REDACTED";
+        private string? _apiKey = null;
 
         public void SetApiKey(string? key) => _apiKey = string.IsNullOrWhiteSpace(key) ? null : key;
         public string? GetApiKey() => _apiKey;

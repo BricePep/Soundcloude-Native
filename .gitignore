@@ -6,3 +6,6 @@ nul
 *.user
 *.suo
 *.cache
+Installer/Payload/app.zip
+Installer/Payload/app/
+Installer/Payload/uninstaller/
